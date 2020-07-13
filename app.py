@@ -82,16 +82,17 @@ def login():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            user = User.query.filter_by(username=data['user_name']).first()
+            user = Usuario.query.filter_by(user_name=data['user_name']).first()
             if user:
                 if user.password == data['password']:
-                    return {"status": 1000} #Valido
+                    return {"status": 1000, "id": user.user_type} #Valido
                 else:
                     return {"status": 1010} #Invalido
             else:
                 return {"status": 1010} #Invalido
         else:
             return {"error": "The request payload is not in the expected format"}
+    
 
 @app.route('/privileges', methods=['POST', 'GET'])
 def privileges():
@@ -198,4 +199,4 @@ def comentarios():
         return {"count": len(results), "comments": results, "message": "success"}
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host="0.0.0.0")
