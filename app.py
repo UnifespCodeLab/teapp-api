@@ -59,7 +59,6 @@ def users():
         if request.is_json:
             data = request.get_json()
             new_user = Usuario(real_name=data['real_name'], user_name=data['user_name'], password=data['password'], email=data['email'], user_type=data['user_type'])
-
             db.session.add(new_user)
             db.session.commit()
 
@@ -85,14 +84,14 @@ def login():
             user = Usuario.query.filter_by(user_name=data['user_name']).first()
             if user:
                 if user.password == data['password']:
-                    return {"status": 1000, "id": user.user_type} #Valido
+                    return {"status": 1000, "type": user.user_type, "id": user.id} #Valido
                 else:
                     return {"status": 1010} #Invalido
             else:
                 return {"status": 1010} #Invalido
         else:
             return {"error": "The request payload is not in the expected format"}
-    
+
 
 @app.route('/privileges', methods=['POST', 'GET'])
 def privileges():
