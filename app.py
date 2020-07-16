@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://khdzwdyatfzwdp:78028609373577fc5c3c539b27f97018153b8549b1132583aa6865a6d591aee2@ec2-18-214-211-47.compute-1.amazonaws.com:5432/ddjtenek1jfccg"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://figiplfvblreay:b69754a8751ea7d4b37f78380d54a1938d79c644dfc578d9a4d98326c9efb032@ec2-54-211-210-149.compute-1.amazonaws.com:5432/dv8tdb7gcmnb1"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
