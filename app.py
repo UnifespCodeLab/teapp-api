@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://figiplfvblreay:b69754a8751ea7d4b37f78380d54a1938d79c644dfc578d9a4d98326c9efb032@ec2-54-211-210-149.compute-1.amazonaws.com:5432/dv8tdb7gcmnb1"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://ykcqisckexhoog:c11398e7afd5548c2dfb0e0f6e7810b1d21cf7dcebc82d58c77577b1a813778e@ec2-50-19-26-235.compute-1.amazonaws.com:5432/d83rhkih4476b9"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -12,15 +12,15 @@ class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     real_name = db.Column(db.String(80), nullable=True)
-    user_name = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    verificado = db.Column(db.Boolean, default=False, nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
 
-    def __init__(self, real_name, user_name, password, email, user_type):
+    def __init__(self, real_name, user_name, verificado, password, email, user_type):
         self.real_name = real_name
-        self.user_name = user_name
         self.password = password
+        self.verificado = verificado
         self.email = email
         self.user_type = user_type
 
@@ -84,7 +84,7 @@ def login():
             user = Usuario.query.filter_by(user_name=data['user_name']).first()
             if user:
                 if user.password == data['password']:
-                    return {"status": 1000, "type": user.user_type, "id": user.id} #Valido
+                    return {"status": 1000, "type": str(user.user_type), "id": str(user.id), "verificado": str(user.verificado)} #Valido
                 else:
                     return {"status": 1010} #Invalido
             else:
