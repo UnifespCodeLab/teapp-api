@@ -58,11 +58,11 @@ def users():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            new_user = Usuario(real_name=data['real_name'], user_name=data['user_name'], password=data['password'], email=data['email'], user_type=data['user_type'])
+            new_user = Usuario(real_name=data['real_name'], password=data['password'], email=data['email'], user_type=data['user_type'])
             db.session.add(new_user)
             db.session.commit()
 
-            return {"message": f"User {new_user.user_name} has been created successfully."}
+            return {"message": f"User {new_user.email} has been created successfully."}
         else:
             return {"error": "The request payload is not in the expected format"}
 
@@ -70,7 +70,6 @@ def users():
         users = Usuario.query.all()
         results = [
             {
-                "user_name": user.user_name,
                 "email": user.email
             } for user in users]
 
@@ -81,7 +80,7 @@ def login():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            user = Usuario.query.filter_by(user_name=data['user_name']).first()
+            user = Usuario.query.filter_by(email=data['email']).first()
             if user:
                 if user.password == data['password']:
                     return {"status": 1000, "type": str(user.user_type), "id": str(user.id), "verificado": str(user.verificado)} #Valido
@@ -129,7 +128,6 @@ def handle_user(id):
 
     elif request.method == 'PUT':
         data = request.get_json()
-        user.user_name = data['user_name']
         user.email = data['email']
         user.real_name = data['real_name']
         user.password = data['password']
@@ -137,14 +135,14 @@ def handle_user(id):
 
         db.session.add(user)
         db.session.commit()
-        
+
         return {"message": f"User {user.user_name} successfully updated."}
 
     elif request.method == 'DELETE':
         db.session.delete(user)
         db.session.commit()
-        
-        return {"message": f"User {user.user_name} successfully deleted."}
+
+        return {"message": f"User {user.email} successfully deleted."}
 
 @app.route('/postagens', methods=['POST', 'GET'])
 def postagens():
