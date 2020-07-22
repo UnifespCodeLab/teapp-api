@@ -17,7 +17,7 @@ class Usuario(db.Model):
     verificado = db.Column(db.Boolean, default=False, nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
 
-    def __init__(self, real_name, user_name, verificado, password, email, user_type):
+    def __init__(self, real_name, verificado, password, email, user_type):
         self.real_name = real_name
         self.password = password
         self.verificado = verificado
@@ -121,7 +121,6 @@ def handle_user(id):
 
     if request.method == 'GET':
         response = {
-            "name": user.user_name,
             "model": user.email
         }
         return {"message": "success", "user": response}
@@ -136,7 +135,7 @@ def handle_user(id):
         db.session.add(user)
         db.session.commit()
 
-        return {"message": f"User {user.user_name} successfully updated."}
+        return {"message": f"User {user.email} successfully updated."}
 
     elif request.method == 'DELETE':
         db.session.delete(user)
