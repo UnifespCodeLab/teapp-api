@@ -17,10 +17,10 @@ class Usuario(db.Model):
     verificado = db.Column(db.Boolean, default=False, nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
 
-    def __init__(self, real_name, verificado, password, email, user_type):
+    def __init__(self, real_name, password, email, user_type):
         self.real_name = real_name
         self.password = password
-        self.verificado = verificado
+        self.verificado = False
         self.email = email
         self.user_type = user_type
 
