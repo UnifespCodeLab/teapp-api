@@ -104,7 +104,7 @@ def privileges():
 
             return {"message": f"Privilege {new_privilege.user_type} has been created successfully."}
         else:
-            return {"error": "The request payload is not in the expected format"}
+            return {"error": "A requisição não foi feita no formato esperado"}
 
     elif request.method == 'GET':
         privileges = Privilegio.query.all()
@@ -121,7 +121,8 @@ def handle_user(id):
 
     if request.method == 'GET':
         response = {
-            "model": user.email
+            "email": user.email,
+            "nome": user.real_name
         }
         return {"message": "success", "user": response}
 
@@ -135,13 +136,13 @@ def handle_user(id):
         db.session.add(user)
         db.session.commit()
 
-        return {"message": f"User {user.email} successfully updated."}
+        return {"message": f"Dados de {user.email} atualizados"}
 
     elif request.method == 'DELETE':
         db.session.delete(user)
         db.session.commit()
 
-        return {"message": f"User {user.email} successfully deleted."}
+        return {"message": f"Dados de {user.email} removidos"}
 
 @app.route('/postagens', methods=['POST', 'GET'])
 def postagens():
