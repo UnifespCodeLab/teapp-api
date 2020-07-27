@@ -62,9 +62,9 @@ def users():
             db.session.add(new_user)
             db.session.commit()
 
-            return {"message": f"User {new_user.email} has been created successfully."}
+            return {"message": f"Usuario criado"}
         else:
-            return {"error": "The request payload is not in the expected format"}
+            return {"error": "A requisição não foi feita no formato esperado"}
 
     elif request.method == 'GET':
         users = Usuario.query.all()
@@ -89,7 +89,7 @@ def login():
             else:
                 return {"status": 1010} #Invalido
         else:
-            return {"error": "The request payload is not in the expected format"}
+            return {"error": "A requisição não foi feita no formato esperado"}
 
 
 @app.route('/privileges', methods=['POST', 'GET'])
@@ -102,7 +102,7 @@ def privileges():
             db.session.add(new_privilege)
             db.session.commit()
 
-            return {"message": f"Privilege {new_privilege.user_type} has been created successfully."}
+            return {"message": f"Privilégio criado com sucesso"}
         else:
             return {"error": "A requisição não foi feita no formato esperado"}
 
@@ -154,9 +154,9 @@ def postagens():
             db.session.add(new_post)
             db.session.commit()
 
-            return {"message": f"Post {new_post.titulo} has been created successfully."}
+            return {"message": f"Postagem criada"}
         else:
-            return {"error": "The request payload is not in the expected format"}
+            return {"error": "A requisição não está no formato esperado"}
 
     elif request.method == 'GET':
         postagens = Postagem.query.all()
@@ -179,9 +179,9 @@ def comentarios():
             db.session.add(new_comment)
             db.session.commit()
 
-            return {"message": f"New comment registred."}
+            return {"message": f"Comentário registrado"}
         else:
-            return {"error": "The request payload is not in the expected format"}
+            return {"error": "A requisição não está no formato esperado"}
 
     elif request.method == 'GET':
         comments = Comentario.query.all()
