@@ -131,7 +131,6 @@ def handle_user(id):
         user.email = data['email']
         user.real_name = data['real_name']
         user.password = data['password']
-        user.user_type = data['user_type']
 
         db.session.add(user)
         db.session.commit()
