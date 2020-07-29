@@ -143,7 +143,7 @@ def handle_user(id):
 
         return {"message": f"Dados de {user.email} removidos"}
 
-@app.route('/postagens', methods=['POST'])
+@app.route('/postagens', methods=['POST', 'GET'])
 def postagens():
     if request.method == 'POST':
         if request.is_json:
@@ -156,6 +156,14 @@ def postagens():
             return {"message": f"Postagem criada"}
         else:
             return {"error": "A requisição não está no formato esperado"}
+    elif request.method == 'GET':
+        postagens = Postagem.query.all()
+        results = []
+        for post in postagens:
+            user = Usuario.query.get_or_404(post.criador)
+            results.append({"titulo": post.titulo,"texto": post.texto,"criador": user.real_name})
+
+        return {"count": len(results), "post": results, "message": "success"}
 
 @app.route('/lista_postagens/<id>', methods=['GET'])
 def lista_postagens(id):
