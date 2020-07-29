@@ -166,7 +166,7 @@ def lista_postagens(id):
             results = []
             for post in postagens:
                 if post.criador == user.id:
-                    results = [{"titulo": post.titulo,"texto": post.texto,"criador": user.real_name}]
+                    results.append({"titulo": post.titulo,"texto": post.texto,"criador": user.real_name})
 
             return {"count": len(results), "post": results, "message": "success"}
         except:
