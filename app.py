@@ -143,7 +143,7 @@ def handle_user(id):
 
         return {"message": f"Dados de {user.email} removidos"}
 
-@app.route('/postagens', methods=['POST', 'GET'])
+@app.route('/postagens', methods=['POST'])
 def postagens():
     if request.method == 'POST':
         if request.is_json:
@@ -157,16 +157,20 @@ def postagens():
         else:
             return {"error": "A requisição não está no formato esperado"}
 
-    elif request.method == 'GET':
-        postagens = Postagem.query.all()
-        results = [
-            {
-                "titulo": post.titulo,
-                "texto": post.texto,
-                "criador": post.criador
-            } for post in postagens]
+@app.route('/lista_postagens/<id>', methods=['GET'])
+def lista_postagens(id):
+    if request.method == 'GET':
+        try :
+            postagens = Postagem.query.all()
+            user = Usuario.query.get_or_404(id)
+            results = []
+            for post in postagens:
+                if post.criador == user.id:
+                    results = [{"titulo": post.titulo,"texto": post.texto,"criador": user.real_name}]
 
-        return {"count": len(results), "posts": results, "message": "success"}
+            return {"count": len(results), "post": results, "message": "success"}
+        except:
+            return {"error": 404, "message": "Usuário não encontrado"}
 
 @app.route('/comentarios', methods=['POST', 'GET'])
 def comentarios():
