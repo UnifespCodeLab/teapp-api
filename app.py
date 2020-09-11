@@ -25,7 +25,7 @@ class Usuario(db.Model):
     bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
 
-    def __init__(self, real_name, password, email, user_type, sexo, nascimento, cor, ):
+    def __init__(self, real_name, password, email, user_type, sexo, nascimento, cor, rep_familia, telefone, rua, numero_casa):
         import datetime
         self.real_name = real_name
         self.password = password
@@ -38,6 +38,7 @@ class Usuario(db.Model):
         self.telefone = telefone
         self.rua = rua
         self.numero_casa = numero_casa
+        self.rep_familia = rep_familia
         self.data_registro = datetime.now()
 
 
@@ -192,6 +193,7 @@ def handle_user(id):
         user.telefone = data['telefone']
         user.rua = data['rua']
         user.numero_casa = data['numero_casa']
+        user.rep_familia = data['rep_familia']
 
         db.session.add(user)
         db.session.commit()
