@@ -81,12 +81,42 @@ class Form_Socioeconomico(db.Model):
     gestante = db.Column(db.Boolean, nullable=False)
     qtd_amamentando = db.Column(db.Integer, nullable=False)
     qtd_criancas_deficiencia = db.Column(db.Integer, nullable=False)
-    def __init__(self, user_type):
-        self.user_type = user_type
+    preenchido = db.Column(db.Boolean, nullable=False, default="False")
+    def __init__(self, nome_rep_familia, pessoa, qtd_pessoas_familia, qtd_criancas, gestante, qtd_amamentando, qtd_criancas_deficiencia, ):
+        self.nome_rep_familia = nome_rep_familia
+        self.pessoa = pessoa
+        self.qtd_pessoas_familia = qtd_pessoas_familia
+        self.qtd_criancas = qtd_criancas
+        self.gestante = gestante
+        self.qtd_amamentando = qtd_amamentando
+        self.qtd_criancas_deficiencia = qtd_criancas_deficiencia
+        self.preenchido = False
 
 @app.route('/')
 def hello():
-	return "Hello World!"
+	return "The API Works"
+
+@app.route('/form_socio/<id>', methods=['POST', 'GET'])
+def form_socio(id):
+    if request.method == 'POST':
+        if request.is_json:
+            data = request.get_json()
+            new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=data['pessoa'], qtd_pessoas_familia=data['qtd_pessoas_familia'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], preenchido=True)
+            db.session.add(new_user)
+            db.session.commit()
+
+            return {"message": f"Formulário enviado!"}
+        else:
+            return {"error": "O envio não foi feita no formato esperado"}
+
+    elif request.method == 'GET':
+        forms = Form_Socioeconomico.query.all()
+        results = [
+            {
+                "respondido": form.preenchido
+            } if form.preenchido and id == form.pessoa for form in forms]
+
+        return {"count": len(results), "users": results, "message": "success"}
 
 @app.route('/users', methods=['POST', 'GET'])
 def users():
