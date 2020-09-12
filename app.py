@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://ykcqisckexhoog:c11398e7afd5548c2dfb0e0f6e7810b1d21cf7dcebc82d58c77577b1a813778e@ec2-50-19-26-235.compute-1.amazonaws.com:5432/d83rhkih4476b9"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://lanewibqlrkdqg:fa810ea3b266d601c3482f23356b9e8dfd93f445e10c5f8b6564dea45892bf9f@ec2-50-19-26-235.compute-1.amazonaws.com:5432/d2vpmdf7mdc6ck"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -111,10 +111,11 @@ def form_socio(id):
 
     elif request.method == 'GET':
         forms = Form_Socioeconomico.query.all()
-        results = [
-            {
-                "respondido": form.preenchido
-            } if form.preenchido and id == form.pessoa for form in forms]
+        for form in forms:
+            if form.preenchido and id == form.pessoa:
+                results = [{
+                    "respondido": form.preenchido
+                }]
 
         return {"count": len(results), "users": results, "message": "success"}
 
