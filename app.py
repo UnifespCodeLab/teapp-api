@@ -25,7 +25,7 @@ class Usuario(db.Model):
     bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
 
-    def __init__(self, real_name, password, email, user_type, sexo, nascimento, cor, rep_familia, telefone, rua, numero_casa):
+    def __init__(self, real_name, password, email, user_type, sexo, nascimento, cor, telefone, rua, numero_casa):
         import datetime
         self.real_name = real_name
         self.password = password
@@ -38,9 +38,7 @@ class Usuario(db.Model):
         self.telefone = telefone
         self.rua = rua
         self.numero_casa = numero_casa
-        self.rep_familia = rep_familia
         self.data_registro = datetime.now()
-
 
 class Privilegio(db.Model):
     __tablename__ = 'privilegios'
@@ -76,8 +74,13 @@ class Comentario(db.Model):
 class Form_Socioeconomico(db.Model):
     __tablename__ = 'form_socioeconomico'
     id = db.Column(db.Integer, primary_key=True)
-    nome_rep_familia = db.Column(db.String(100), unique=True, nullable=False)
-    idade = db.Column(db.String(100), unique=True, nullable=False)
+    nome_rep_familia = db.Column(db.String(100), nullable=False)
+    pessoa = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    qtd_pessoas_familia = db.Column(db.Integer, nullable=False)
+    qtd_criancas = db.Column(db.Integer, nullable=False)
+    gestante = db.Column(db.Boolean, nullable=False)
+    qtd_amamentando = db.Column(db.Integer, nullable=False)
+    qtd_criancas_deficiencia = db.Column(db.Integer, nullable=False)
     def __init__(self, user_type):
         self.user_type = user_type
 
@@ -193,7 +196,6 @@ def handle_user(id):
         user.telefone = data['telefone']
         user.rua = data['rua']
         user.numero_casa = data['numero_casa']
-        user.rep_familia = data['rep_familia']
 
         db.session.add(user)
         db.session.commit()
