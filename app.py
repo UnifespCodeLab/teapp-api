@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://gyefrlvllqlyfp:69c0369e49b9c536e061551b4b00e18895915dba22c4fb946b357117f389241a@ec2-54-224-124-241.compute-1.amazonaws.com:5432/d2qn5h1r6lq79j"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://umtouxbdsasidx:1f187a426cf06e89f9ea7891687400700c678dc186a308134bfd8e5610c3fd4b@ec2-3-214-46-194.compute-1.amazonaws.com:5432/dbcm072or8a38t"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -62,6 +62,21 @@ class Postagem(db.Model):
     titulo = db.Column(db.String(400), nullable=False)
     texto = db.Column(db.String(400), nullable=False)
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
+
+    def __init__(self, titulo, texto, criador, categoria):
+        self.titulo = titulo
+        self.texto = texto
+        self.criador = criador
+        self.categoria = categoria
+
+class Categoria(db.Model):
+    __tablename__ = 'categorias'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(80), unique=True, nullable=False)
+
+    def __init__(self, nome):
+        self.nome = nome
 
 class Comentario(db.Model):
     __tablename__ = 'comentarios'
@@ -70,6 +85,12 @@ class Comentario(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
+
+    def __init__(self, texto, criador, postagem, resposta):
+        self.texto = texto
+        self.criador = criador
+        self.postagem = postagem
+        self.resposta = resposta
 
 class Form_Socioeconomico(db.Model):
     __tablename__ = 'form_socioeconomico'
@@ -82,7 +103,9 @@ class Form_Socioeconomico(db.Model):
     qtd_amamentando = db.Column(db.Integer, nullable=False)
     qtd_criancas_deficiencia = db.Column(db.Integer, nullable=False)
     preenchido = db.Column(db.Boolean, nullable=False, default="False")
-    def __init__(self, nome_rep_familia, pessoa, qtd_pessoas_familia, qtd_criancas, gestante, qtd_amamentando, qtd_criancas_deficiencia, ):
+    pessoa_amamenta = db.Column(db.Boolean, nullable=False, default="False")
+    qtd_gestantes = db.Column(db.Integer, nullable=False)
+    def __init__(self, nome_rep_familia, pessoa, qtd_pessoas_familia, qtd_criancas, gestante, qtd_amamentando, qtd_criancas_deficiencia, qtd_gestantes, pessoa_amamenta):
         self.nome_rep_familia = nome_rep_familia
         self.pessoa = pessoa
         self.qtd_pessoas_familia = qtd_pessoas_familia
@@ -90,11 +113,13 @@ class Form_Socioeconomico(db.Model):
         self.gestante = gestante
         self.qtd_amamentando = qtd_amamentando
         self.qtd_criancas_deficiencia = qtd_criancas_deficiencia
-        self.preenchido = False
+        self.qtd_gestantes = qtd_gestantes
+        self.pessoa_amamenta = pessoa_amamenta
+        self.preenchido = True
 
 @app.route('/')
 def hello():
-	return "The API Works"
+	return "This API Works!"
 
 @app.route('/form_socio/<id>', methods=['POST', 'GET'])
 def form_socio(id):
@@ -199,10 +224,35 @@ def bairros():
         bairros = Bairro.query.all()
         results = [
             {
-                "nome": bairro.nome
+                "nome": bairro.nome,
+                "id": bairro.id
             } for bairro in bairros]
 
         return {"count": len(results), "Bairros": results, "message": "success"}
+
+@app.route('/categorias', methods=['POST', 'GET'])
+def categorias():
+    if request.method == 'POST':
+        if request.is_json:
+            data = request.get_json()
+            new_categoria = Categoria(nome=data['nome'])
+
+            db.session.add(new_categoria)
+            db.session.commit()
+
+            return {"message": f"Categoria criado com sucesso"}
+        else:
+            return {"error": "A requisição não foi feita no formato esperado"}
+
+    elif request.method == 'GET':
+        categorias = Categoria.query.all()
+        results = [
+            {
+                "nome": categoria.nome,
+                "id": categoria.id
+            } for categoria in categorias]
+
+        return {"count": len(results), "Categorias": results, "message": "success"}
 
 @app.route('/users/<id>', methods=['GET', 'PUT', 'DELETE'])
 def handle_user(id):
