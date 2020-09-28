@@ -63,6 +63,7 @@ class Postagem(db.Model):
     texto = db.Column(db.String(400), nullable=False)
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
+    selo = db.Column(db.Boolean, default=False, nullable=False)
 
     def __init__(self, titulo, texto, criador, categoria):
         self.titulo = titulo
@@ -289,6 +290,18 @@ def handle_user(id):
 
         return {"message": f"Dados de {user.email} removidos"}
 
+@app.route('/selo/<id>', methods=['PUT'])
+def selo(id):
+    postagem = Postagem.query.get_or_404(id)
+    if request.method == 'PUT':
+        data = request.get_json()
+        postagem.selo = True
+
+        db.session.add(postagem)
+        db.session.commit()
+
+        return {"message": f"Selo emitido!"}
+
 @app.route('/postagens', methods=['POST', 'GET'])
 def postagens():
     if request.method == 'POST':
@@ -307,7 +320,7 @@ def postagens():
         results = []
         for post in postagens:
             user = Usuario.query.get_or_404(post.criador)
-            results.append({"titulo": post.titulo,"texto": post.texto,"criador": user.real_name})
+            results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo})
 
         return {"count": len(results), "post": results, "message": "success"}
 
