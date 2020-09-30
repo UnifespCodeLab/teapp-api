@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://umtouxbdsasidx:1f187a426cf06e89f9ea7891687400700c678dc186a308134bfd8e5610c3fd4b@ec2-3-214-46-194.compute-1.amazonaws.com:5432/dbcm072or8a38t"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://tmvudmtuvscrrg:cacd0b0c622ef4befe71490e09f48c7b9ea3db67868476a39d071708faf27cf9@ec2-35-169-92-231.compute-1.amazonaws.com:5432/d9oga7lftk34ur"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -302,7 +302,7 @@ def postagens():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            new_post = Postagem(texto=data['texto'], criador=data['criador'], titulo=data['titulo'])
+            new_post = Postagem(texto=data['texto'], criador=data['criador'], titulo=data['titulo'], categoria=data['categoria'])
 
             db.session.add(new_post)
             db.session.commit()
@@ -315,9 +315,20 @@ def postagens():
         results = []
         for post in postagens:
             user = Usuario.query.get_or_404(post.criador)
-            results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo})
+            results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
 
         return {"count": len(results), "post": results, "message": "success"}
+
+@app.route('/postagens/<id_categoria>', methods=['GET'])
+def filtros(id_categoria):
+    postagens = Postagem.query.join(Categoria, id_categoria == Postagem.categoria)
+    print(postagens)
+    results = []
+    for post in postagens:
+        user = Usuario.query.get_or_404(post.criador)
+        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+
+    return {"count": len(results), "post": results, "message": "success"}
 
 @app.route('/lista_postagens/<id>', methods=['GET'])
 def lista_postagens(id):
