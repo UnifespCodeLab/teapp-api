@@ -257,6 +257,7 @@ def handle_user(id):
     if request.method == 'GET':
         response = {
             "email": user.email,
+            "privilegio": user.user_type,
             "nome": user.real_name
         }
         return {"message": "success", "user": response}
