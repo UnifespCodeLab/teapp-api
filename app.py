@@ -385,8 +385,4 @@ def comentarios():
         return {"count": len(results), "comments": results, "message": "success"}
 
 if __name__ == '__main__':
-<<<<<<< HEAD
-    app.run(host="0.0.0.0", port=8080)
-=======
-    app.run(host="0.0.0.0", port=9999)
->>>>>>> b064b686dfd3b466c5686eb4b90d76cf64124e88
+    app.run(host="0.0.0.0")
