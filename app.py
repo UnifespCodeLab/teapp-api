@@ -321,6 +321,17 @@ def postagens():
 
         return {"count": len(results), "post": results, "message": "success"}
 
+@app.route('/recomendados', methods=['GET'])
+def recomendados():
+    if request.method == 'GET':
+        postagens = Postagem.query.filter_by(selo=True).all()
+        results = []
+        for post in postagens:
+            user = Usuario.query.get_or_404(post.criador)
+            results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+
+        return {"count": len(results), "post": results, "message": "success"}
+
 @app.route('/postagens/<id_categoria>', methods=['GET'])
 def filtros(id_categoria):
     postagens = Postagem.query.join(Categoria, id_categoria == Postagem.categoria)
@@ -374,4 +385,4 @@ def comentarios():
         return {"count": len(results), "comments": results, "message": "success"}
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", port=8080)
