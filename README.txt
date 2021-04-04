@@ -1,9 +1,7 @@
-docker network create --driver bridge docker-network
+*Para executar com Docker*
 
-docker build -t flask-api .
-docker run --name ibeac-flask --network=docker-network -p 7777:7777 -v /home/mmagueta/docker-flask-postgres/app:/app -d flask-api
-docker exec -it flask-api-container bash
+- Construa a imagem com `docker build -t ibeac-api .` no diretório com o arquivo `Dockerfile`
 
-docker run --name ibeac-postgres --network=docker-network -e "POSTGRES_PASSWORD=ziviani123" -p 5432:5432 -v /home/mmagueta/postgresql/:/var/lib/postgresql/data -d postgres
+- Rode `docker run -d -t ibeac-api` para executar em modo desacoplado (-d)
 
-docker run --name ibeac-pgadmin --network=docker-network -p 15432:80 -e "PGADMIN_DEFAULT_EMAIL=codelab.unifesp@gmail.com" -e "PGADMIN_DEFAULT_PASSWORD=ziviani123" -d dpage/pgadmin4
+- Use `docker network inspect bridge` para identificar o IṔ do container e utilize-o para fazer as requisições sobre a porta 8000
