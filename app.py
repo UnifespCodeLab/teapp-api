@@ -35,8 +35,8 @@ class Usuario(db.Model):
         self.data_registro = datetime.datetime.now()
         self.bairro = bairro
 
-class Notificacao(db.Model):
-    __tablename__ = 'notificacoes'
+class Notificacoes_Conf(db.Model):
+    __tablename__ = 'notificacoes_conf'
     id = db.Column(db.Integer, primary_key=True)
     usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     sistema = db.Column(db.Boolean, default=False, nullable=False)
@@ -137,9 +137,9 @@ class Form_Socioeconomico(db.Model):
 def hello():
 	return "This API Works!"
 
-@app.route('/users/<id>/notificacao', methods=['PUT', 'GET'])
+@app.route('/users/<id>/notificacoes_conf', methods=['PUT', 'GET'])
 def handle_user_notificacao(id):
-    user_not = Notificacao.query.filter_by(usuario=id).first()
+    user_not = Notificacoes_Conf.query.filter_by(usuario=id).first()
 
     if request.method == 'GET':
         response = {
@@ -199,7 +199,7 @@ def users():
             db.session.commit()
             
             new_user = Usuario.query.filter_by(email=data['email'],real_name=data['real_name']).first()
-            new_user_not = Notificacao(usuario=new_user.id, sistema=False, selo_postagem=False, comentario_postagem=False, saude=False, lazer=False, trocas=False)
+            new_user_not = Notificacoes_Conf(usuario=new_user.id, sistema=False, selo_postagem=False, comentario_postagem=False, saude=False, lazer=False, trocas=False)
             db.session.add(new_user_not)
             db.session.commit()
 
