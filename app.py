@@ -313,11 +313,22 @@ def postagens():
         else:
             return {"error": "A requisição não está no formato esperado"}
     elif request.method == 'GET':
-        postagens = Postagem.query.all()
+        postagensWithCriador = Postagem.query.join(Usuario, Postagem.criador == Usuario.id, isouter=True).add_columns(Usuario.real_name, Usuario.bairro)
+
+        # filtros gerais
+        bairro = request.args.get('bairro', None)
+        categoria = request.args.get('categoria', None)
+
+        if categoria is not None:
+            postagensWithCriador = postagensWithCriador.filter(Postagem.categoria.in_(map(int, categoria.split(','))))
+
+        if bairro is not None:
+            postagensWithCriador = postagensWithCriador.filter(Usuario.bairro.in_(map(int, bairro.split(','))))
+
+        postagens = postagensWithCriador.all()
         results = []
         for post in postagens:
-            user = Usuario.query.get_or_404(post.criador)
-            results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -383,6 +394,15 @@ def comentarios():
             } for comment in comments]
 
         return {"count": len(results), "comments": results, "message": "success"}
+
+@app.route('/esqueci_senha', methods=['Get', 'Post'])
+def esqueci_senha():
+     if request.method == 'POST':
+        if request.is_json:
+            data = request.get_json()
+            return data['texto']
+        else:
+            return {"error": "A requisição não está no formato esperado"}
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8000)
