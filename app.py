@@ -12,8 +12,9 @@ class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     real_name = db.Column(db.String(80), nullable=False)
+    user_name = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)
     verificado = db.Column(db.Boolean, default=False, nullable=False)
     sexo = db.Column(db.String(1), nullable=True)
     nascimento = db.Column(db.String(20), nullable=True)
@@ -25,12 +26,12 @@ class Usuario(db.Model):
     bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
 
-    def __init__(self, real_name, password, email, user_type, bairro):
+    def __init__(self, real_name, password, user_name, user_type, bairro):
         import datetime
         self.real_name = real_name
         self.password = password
         self.verificado = False
-        self.email = email
+        self.user_name = user_name
         self.user_type = user_type
         self.data_registro = datetime.datetime.now()
         self.bairro = bairro
@@ -194,7 +195,7 @@ def users():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            new_user = Usuario(real_name=data['real_name'], password=data['password'], email=data['email'], user_type=data['user_type'], bairro=data['bairro'])
+            new_user = Usuario(real_name=data['real_name'], password=data['password'], user_name=data['user_name'], user_type=data['user_type'], bairro=data['bairro'])
             db.session.add(new_user)
             db.session.commit()
             
@@ -211,6 +212,7 @@ def users():
         users = Usuario.query.all()
         results = [
             {
+                "user_name": user.user_name,
                 "email": user.email
             } for user in users]
 
@@ -222,6 +224,8 @@ def login():
         if request.is_json:
             data = request.get_json()
             user = Usuario.query.filter_by(email=data['email']).first()
+            if user is None:
+                user = Usuario.query.filter_by(user_name=data['user_name']).first()
             if user:
                 if user.password == data['password']:
                     return {"status": 1000, "type": str(user.user_type), "id": str(user.id), "verificado": str(user.verificado)} #Valido
@@ -332,13 +336,13 @@ def handle_user(id):
         db.session.add(user)
         db.session.commit()
 
-        return {"message": f"Dados de {user.email} atualizados"}
+        return {"message": f"Dados de {user.user_name} atualizados"}
 
     elif request.method == 'DELETE':
         db.session.delete(user)
         db.session.commit()
 
-        return {"message": f"Dados de {user.email} removidos"}
+        return {"message": f"Dados de {user.user_name} removidos"}
 
 @app.route('/selo/<id>', methods=['PUT'])
 def selo(id):
@@ -366,11 +370,22 @@ def postagens():
         else:
             return {"error": "A requisição não está no formato esperado"}
     elif request.method == 'GET':
-        postagens = Postagem.query.all()
+        postagensWithCriador = Postagem.query.join(Usuario, Postagem.criador == Usuario.id, isouter=True).add_columns(Usuario.real_name, Usuario.bairro)
+
+        # filtros gerais
+        bairro = request.args.get('bairro', None)
+        categoria = request.args.get('categoria', None)
+
+        if categoria is not None:
+            postagensWithCriador = postagensWithCriador.filter(Postagem.categoria.in_(map(int, categoria.split(','))))
+
+        if bairro is not None:
+            postagensWithCriador = postagensWithCriador.filter(Usuario.bairro.in_(map(int, bairro.split(','))))
+
+        postagens = postagensWithCriador.all()
         results = []
         for post in postagens:
-            user = Usuario.query.get_or_404(post.criador)
-            results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -436,6 +451,15 @@ def comentarios():
             } for comment in comments]
 
         return {"count": len(results), "comments": results, "message": "success"}
+
+@app.route('/esqueci_senha', methods=['Get', 'Post'])
+def esqueci_senha():
+     if request.method == 'POST':
+        if request.is_json:
+            data = request.get_json()
+            return data['texto']
+        else:
+            return {"error": "A requisição não está no formato esperado"}
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8000)
