@@ -2,8 +2,11 @@ import os
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"*": {"origins": "*"}})
+app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgres://tmvudmtuvscrrg:cacd0b0c622ef4befe71490e09f48c7b9ea3db67868476a39d071708faf27cf9@ec2-35-169-92-231.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -13,7 +16,7 @@ class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     real_name = db.Column(db.String(80), nullable=False)
-    user_name = db.Column(db.String(80), unique=True, nullable=False)
+    # user_name = db.Column(db.String(80), unique=True, nullable=False) ## TODO: banco ainda nao foi atualizado para conter esse campo
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)
     verificado = db.Column(db.Boolean, default=False, nullable=False)
@@ -116,10 +119,12 @@ class Form_Socioeconomico(db.Model):
         self.preenchido = True
 
 @app.route('/')
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
-	return "This API Works!"
+	return "This API Works! [" + os.environ.get("ENV", "PRD") + "]"
 
 @app.route('/form_socio/<id>', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def form_socio(id):
     if request.method == 'POST':
         if request.is_json:
@@ -144,6 +149,7 @@ def form_socio(id):
         return {"count": len(results), "users": results, "message": "success"}
 
 @app.route('/users', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def users():
     if request.method == 'POST':
         if request.is_json:
@@ -167,6 +173,7 @@ def users():
         return {"count": len(results), "users": results, "message": "success"}
 
 @app.route('/login', methods=['POST'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def login():
     if request.method == 'POST':
         if request.is_json:
@@ -186,6 +193,7 @@ def login():
 
 
 @app.route('/privileges', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def privileges():
     if request.method == 'POST':
         if request.is_json:
@@ -209,6 +217,7 @@ def privileges():
         return {"count": len(results), "Privileges": results, "message": "success"}
 
 @app.route('/bairros', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def bairros():
     if request.method == 'POST':
         if request.is_json:
@@ -233,6 +242,7 @@ def bairros():
         return {"count": len(results), "Bairros": results, "message": "success"}
 
 @app.route('/categorias', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def categorias():
     if request.method == 'POST':
         if request.is_json:
@@ -257,6 +267,7 @@ def categorias():
         return {"count": len(results), "Categorias": results, "message": "success"}
 
 @app.route('/users/<id>', methods=['GET', 'PUT', 'DELETE'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def handle_user(id):
     user = Usuario.query.get_or_404(id)
 
@@ -293,6 +304,7 @@ def handle_user(id):
         return {"message": f"Dados de {user.user_name} removidos"}
 
 @app.route('/selo/<id>', methods=['PUT'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def selo(id):
     postagem = Postagem.query.get_or_404(id)
     if request.method == 'PUT':
@@ -305,6 +317,7 @@ def selo(id):
         return {"message": f"Selo emitido!"}
 
 @app.route('/postagens', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def postagens():
     if request.method == 'POST':
         if request.is_json:
@@ -338,6 +351,7 @@ def postagens():
         return {"count": len(results), "post": results, "message": "success"}
 
 @app.route('/recomendados', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def recomendados():
     if request.method == 'GET':
         postagens = Postagem.query.filter_by(selo=True).all()
@@ -349,6 +363,7 @@ def recomendados():
         return {"count": len(results), "post": results, "message": "success"}
 
 @app.route('/postagens/<id_categoria>', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def filtros(id_categoria):
     postagens = Postagem.query.join(Categoria, id_categoria == Postagem.categoria)
     print(postagens)
@@ -360,6 +375,7 @@ def filtros(id_categoria):
     return {"count": len(results), "post": results, "message": "success"}
 
 @app.route('/lista_postagens/<id>', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def lista_postagens(id):
     if request.method == 'GET':
         try :
@@ -375,6 +391,7 @@ def lista_postagens(id):
             return {"error": 404, "message": "Usuário não encontrado"}
 
 @app.route('/comentarios', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def comentarios():
     if request.method == 'POST':
         if request.is_json:
@@ -401,6 +418,7 @@ def comentarios():
         return {"count": len(results), "comments": results, "message": "success"}
 
 @app.route('/esqueci_senha', methods=['Get', 'Post'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def esqueci_senha():
      if request.method == 'POST':
         if request.is_json:
