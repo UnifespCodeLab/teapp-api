@@ -276,7 +276,13 @@ def handle_user(id):
         response = {
             "email": user.email,
             "privilegio": user.user_type,
-            "nome": user.real_name
+            "nome": user.real_name,
+            "sexo": user.sexo,
+            "nascimento": user.nascimento,
+            "cor": user.cor,
+            "telefone": user.telefone,
+            "rua": user.rua,
+            "numero_casa": user.numero_casa
         }
         return {"message": "success", "user": response}
 
