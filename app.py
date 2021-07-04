@@ -64,6 +64,7 @@ class Postagem(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
     selo = db.Column(db.Boolean, default=False, nullable=False)
+    data = db.Column(db.Time)
 
     def __init__(self, titulo, texto, criador, categoria):
         self.titulo = titulo
@@ -121,7 +122,7 @@ class Form_Socioeconomico(db.Model):
 @app.route('/')
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
-	return "This API Works! [" + os.environ.get("ENV", "PRD") + "]"
+	return "This API Works! [" + os.environ.get("ENV", "DEV") + "]"
 
 @app.route('/form_socio/<id>', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -346,7 +347,7 @@ def postagens():
         postagens = postagensWithCriador.all()
         results = []
         for post in postagens:
-            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria})
+            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria,"data":post.Postagem.data})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -370,7 +371,7 @@ def filtros(id_categoria):
     results = []
     for post in postagens:
         user = Usuario.query.get_or_404(post.criador)
-        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria, "data": post.data})
 
     return {"count": len(results), "post": results, "message": "success"}
 
