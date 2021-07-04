@@ -87,6 +87,7 @@ class Comentario(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
+    data = db.Column(db.Time)
 
     def __init__(self, texto, criador, postagem, resposta):
         self.texto = texto
@@ -419,10 +420,32 @@ def comentarios():
                 "texto": comment.texto,
                 "criador": comment.criador,
                 "postagem": comment.postagem,
-                "resposta": comment.resposta
+                "resposta": comment.resposta,
+                "data": comment.data
             } for comment in comments]
 
         return {"count": len(results), "comments": results, "message": "success"}
+
+@app.route('/comentarios/<postagem_id>', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+def comentarios_postagem(postagem_id):
+    if request.method == 'GET':
+        comments = Comentario.query.filter_by(postagem=postagem_id).all()
+        users_id = [ comment.criador for comment in comments ]
+        users = Usuario.query.filter(Usuario.id.in_(users_id)).all()
+        results = [
+        {
+            "texto": comment.texto,
+            "criador": 
+                { 
+                    "id": comment.criador, 
+                    "name": next(filter(lambda user: user.id == comment.criador, users)).real_name  
+                },
+            "resposta": comment.resposta,
+            "data": comment.data
+        } for comment in comments]
+        return {"user": 1,"count": len(results), "comments": results, "message": "success"}
+
 
 @app.route('/esqueci_senha', methods=['Get', 'Post'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
