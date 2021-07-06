@@ -40,6 +40,26 @@ class Usuario(db.Model):
         self.data_registro = datetime.datetime.now()
         self.bairro = bairro
 
+class Notificacoes_Conf(db.Model):
+    __tablename__ = 'notificacoes_conf'
+    id = db.Column(db.Integer, primary_key=True)
+    usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    sistema = db.Column(db.Boolean, default=False, nullable=False)
+    selo_postagem = db.Column(db.Boolean, default=False, nullable=False)
+    comentario_postagem = db.Column(db.Boolean, default=False, nullable=False)
+    saude =db.Column(db.Boolean, default=False, nullable=False)
+    lazer = db.Column(db.Boolean, default=False, nullable=False)
+    trocas = db.Column(db.Boolean, default=False, nullable=False)
+
+    def __init__(self, usuario, sistema, selo_postagem, comentario_postagem, saude, lazer, trocas):
+        self.usuario = usuario
+        self.sistema = sistema
+        self.selo_postagem = selo_postagem
+        self.comentario_postagem = comentario_postagem
+        self.saude = saude
+        self.lazer = lazer
+        self.trocas = trocas
+
 class Privilegio(db.Model):
     __tablename__ = 'privilegios'
     id = db.Column(db.Integer, primary_key=True)
@@ -125,6 +145,34 @@ class Form_Socioeconomico(db.Model):
 def hello():
 	return "This API Works! [" + os.environ.get("ENV", "DEV") + "]"
 
+@app.route('/users/<id>/notificacoes_conf', methods=['PUT', 'GET'])
+def handle_user_notificacao(id):
+    user_not = Notificacoes_Conf.query.filter_by(usuario=id).first()
+
+    if request.method == 'GET':
+        response = {
+            "sistema":user_not.sistema,
+            "selo_postagem":user_not.selo_postagem,
+            "comentario_postagem":user_not.comentario_postagem,
+            "saude":user_not.saude,
+            "lazer":user_not.lazer,
+            "trocas":user_not.trocas
+        }
+        return {"message": "success", "user_not": response}
+    elif request.method == 'PUT':
+        data = request.get_json()
+        user_not.sistema = data['sistema']
+        user_not.selo_postagem = data['selo_postagem']
+        user_not.comentario_postagem = data['comentario_postagem']
+        user_not.saude = data['saude']
+        user_not.lazer = data['lazer']
+        user_not.trocas = data['trocas']
+        db.session.add(user_not)
+        db.session.commit()
+        return {"message": f"Configurações de notificação atualizadas"}
+
+
+
 @app.route('/form_socio/<id>', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def form_socio(id):
@@ -158,6 +206,11 @@ def users():
             data = request.get_json()
             new_user = Usuario(real_name=data['real_name'], password=data['password'], user_name=data['user_name'], user_type=data['user_type'], bairro=data['bairro'])
             db.session.add(new_user)
+            db.session.commit()
+            
+            new_user = Usuario.query.filter_by(email=data['email'],real_name=data['real_name']).first()
+            new_user_not = Notificacoes_Conf(usuario=new_user.id, sistema=False, selo_postagem=False, comentario_postagem=False, saude=False, lazer=False, trocas=False)
+            db.session.add(new_user_not)
             db.session.commit()
 
             return {"message": f"Usuario criado"}
