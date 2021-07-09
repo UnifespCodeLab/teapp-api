@@ -7,7 +7,7 @@ from flask_cors import CORS, cross_origin
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgres://tmvudmtuvscrrg:cacd0b0c622ef4befe71490e09f48c7b9ea3db67868476a39d071708faf27cf9@ec2-35-169-92-231.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgres://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -16,7 +16,7 @@ class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     real_name = db.Column(db.String(80), nullable=False)
-    # user_name = db.Column(db.String(80), unique=True, nullable=False) ## TODO: banco ainda nao foi atualizado para conter esse campo
+    user_name = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)
     verificado = db.Column(db.Boolean, default=False, nullable=False)
@@ -84,6 +84,7 @@ class Postagem(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
     selo = db.Column(db.Boolean, default=False, nullable=False)
+    data = db.Column(db.Time)
 
     def __init__(self, titulo, texto, criador, categoria):
         self.titulo = titulo
@@ -106,6 +107,7 @@ class Comentario(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
+    data = db.Column(db.Time)
 
     def __init__(self, texto, criador, postagem, resposta):
         self.texto = texto
@@ -141,7 +143,7 @@ class Form_Socioeconomico(db.Model):
 @app.route('/')
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
-	return "This API Works! [" + os.environ.get("ENV", "PRD") + "]"
+	return "This API Works! [" + os.environ.get("ENV", "DEV") + "]"
 
 @app.route('/users/<id>/notificacoes_conf', methods=['PUT', 'GET'])
 def handle_user_notificacao(id):
@@ -328,7 +330,13 @@ def handle_user(id):
         response = {
             "email": user.email,
             "privilegio": user.user_type,
-            "nome": user.real_name
+            "nome": user.real_name,
+            "sexo": user.sexo,
+            "nascimento": user.nascimento,
+            "cor": user.cor,
+            "telefone": user.telefone,
+            "rua": user.rua,
+            "numero_casa": user.numero_casa
         }
         return {"message": "success", "user": response}
 
@@ -399,7 +407,7 @@ def postagens():
         postagens = postagensWithCriador.all()
         results = []
         for post in postagens:
-            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria})
+            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria,"data":post.Postagem.data})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -423,7 +431,7 @@ def filtros(id_categoria):
     results = []
     for post in postagens:
         user = Usuario.query.get_or_404(post.criador)
-        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria, "data": post.data})
 
     return {"count": len(results), "post": results, "message": "success"}
 
@@ -465,10 +473,32 @@ def comentarios():
                 "texto": comment.texto,
                 "criador": comment.criador,
                 "postagem": comment.postagem,
-                "resposta": comment.resposta
+                "resposta": comment.resposta,
+                "data": comment.data
             } for comment in comments]
 
         return {"count": len(results), "comments": results, "message": "success"}
+
+@app.route('/comentarios/<postagem_id>', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+def comentarios_postagem(postagem_id):
+    if request.method == 'GET':
+        comments = Comentario.query.filter_by(postagem=postagem_id).all()
+        users_id = [ comment.criador for comment in comments ]
+        users = Usuario.query.filter(Usuario.id.in_(users_id)).all()
+        results = [
+        {
+            "texto": comment.texto,
+            "criador": 
+                { 
+                    "id": comment.criador, 
+                    "name": next(filter(lambda user: user.id == comment.criador, users)).real_name  
+                },
+            "resposta": comment.resposta,
+            "data": comment.data
+        } for comment in comments]
+        return {"user": 1,"count": len(results), "comments": results, "message": "success"}
+
 
 @app.route('/esqueci_senha', methods=['Get', 'Post'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
