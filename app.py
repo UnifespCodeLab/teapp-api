@@ -3,11 +3,15 @@ from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
+import smtplib
+import random
+
+
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgres://tmvudmtuvscrrg:cacd0b0c622ef4befe71490e09f48c7b9ea3db67868476a39d071708faf27cf9@ec2-35-169-92-231.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgres://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -423,7 +427,28 @@ def esqueci_senha():
      if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            return data['texto']
+            usuario = data["id"]
+            usuario = int(usuario)
+            row = Usuario.query.filter_by(id=usuario).one()
+          
+            #Conecta e inicia o serviço de email
+            smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
+            res = smtpObj.starttls()
+
+            #Criei essa conta para mandar o email
+            smtpObj.login('codelabtesteesquecisenha@gmail.com', '44D6DDAAC9C660F72D6490D7CC44731BEA7C236A9241B387D3E9AF0C66B30D49')
+            
+            #Gera uma hash que servirá como senha temporaria 
+            hash = str(random.getrandbits(128))
+            email =  row.email
+            row.password = hash
+            db.session.add(row)
+            db.session.commit()
+            msg = "\n\nSua nova senha e " +hash
+            smtpObj.sendmail('codelabtesteesquecisenha@gmail.com',email,  msg )
+            
+            return("A senha temporaria foi enviada para o email " + row.email)
+        
         else:
             return {"error": "A requisição não está no formato esperado"}
 
