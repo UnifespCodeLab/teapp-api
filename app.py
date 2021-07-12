@@ -3,6 +3,8 @@ from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
+import smtplib
+import random
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
@@ -84,6 +86,7 @@ class Postagem(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
     selo = db.Column(db.Boolean, default=False, nullable=False)
+    data = db.Column(db.Time)
 
     def __init__(self, titulo, texto, criador, categoria):
         self.titulo = titulo
@@ -106,6 +109,7 @@ class Comentario(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
+    data = db.Column(db.Time)
 
     def __init__(self, texto, criador, postagem, resposta):
         self.texto = texto
@@ -141,7 +145,7 @@ class Form_Socioeconomico(db.Model):
 @app.route('/')
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
-	return "This API Works! [" + os.environ.get("ENV", "PRD") + "]"
+	return "This API Works! [" + os.environ.get("ENV", "DEV") + "]"
 
 @app.route('/users/<id>/notificacoes_conf', methods=['PUT', 'GET'])
 def handle_user_notificacao(id):
@@ -328,7 +332,13 @@ def handle_user(id):
         response = {
             "email": user.email,
             "privilegio": user.user_type,
-            "nome": user.real_name
+            "nome": user.real_name,
+            "sexo": user.sexo,
+            "nascimento": user.nascimento,
+            "cor": user.cor,
+            "telefone": user.telefone,
+            "rua": user.rua,
+            "numero_casa": user.numero_casa
         }
         return {"message": "success", "user": response}
 
@@ -399,7 +409,7 @@ def postagens():
         postagens = postagensWithCriador.all()
         results = []
         for post in postagens:
-            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria})
+            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria,"data":post.Postagem.data})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -423,7 +433,7 @@ def filtros(id_categoria):
     results = []
     for post in postagens:
         user = Usuario.query.get_or_404(post.criador)
-        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria, "data": post.data})
 
     return {"count": len(results), "post": results, "message": "success"}
 
@@ -465,10 +475,32 @@ def comentarios():
                 "texto": comment.texto,
                 "criador": comment.criador,
                 "postagem": comment.postagem,
-                "resposta": comment.resposta
+                "resposta": comment.resposta,
+                "data": comment.data
             } for comment in comments]
 
         return {"count": len(results), "comments": results, "message": "success"}
+
+@app.route('/comentarios/<postagem_id>', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+def comentarios_postagem(postagem_id):
+    if request.method == 'GET':
+        comments = Comentario.query.filter_by(postagem=postagem_id).all()
+        users_id = [ comment.criador for comment in comments ]
+        users = Usuario.query.filter(Usuario.id.in_(users_id)).all()
+        results = [
+        {
+            "texto": comment.texto,
+            "criador": 
+                { 
+                    "id": comment.criador, 
+                    "name": next(filter(lambda user: user.id == comment.criador, users)).real_name  
+                },
+            "resposta": comment.resposta,
+            "data": comment.data
+        } for comment in comments]
+        return {"user": 1,"count": len(results), "comments": results, "message": "success"}
+
 
 @app.route('/esqueci_senha', methods=['Get', 'Post'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -476,7 +508,28 @@ def esqueci_senha():
      if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            return data['texto']
+            usuario = data["id"]
+            usuario = int(usuario)
+            row = Usuario.query.filter_by(id=usuario).one()
+          
+            #Conecta e inicia o serviço de email
+            smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
+            res = smtpObj.starttls()
+
+            #Criei essa conta para mandar o email
+            smtpObj.login('codelabtesteesquecisenha@gmail.com', '44D6DDAAC9C660F72D6490D7CC44731BEA7C236A9241B387D3E9AF0C66B30D49')
+            
+            #Gera uma hash que servirá como senha temporaria 
+            hash = str(random.getrandbits(128))
+            email =  row.email
+            row.password = hash
+            db.session.add(row)
+            db.session.commit()
+            msg = "\n\nSua nova senha e " +hash
+            smtpObj.sendmail('codelabtesteesquecisenha@gmail.com',email,  msg )
+            
+            return("A senha temporaria foi enviada para o email " + row.email)
+        
         else:
             return {"error": "A requisição não está no formato esperado"}
 
