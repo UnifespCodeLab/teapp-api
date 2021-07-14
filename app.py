@@ -5,14 +5,16 @@ from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
 import smtplib
 import random
-
-
+import jwt
+import datetime
+from functools import wraps
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgres://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgresql://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRETKEY', "N5Rc6dvl8giHxExSXQmJ")
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -242,7 +244,9 @@ def login():
                 user = Usuario.query.filter_by(user_name=data['user_name']).first()
             if user:
                 if user.password == data['password']:
-                    return {"status": 1000, "type": str(user.user_type), "id": str(user.id), "verificado": str(user.verificado)} #Valido
+                    expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+                    token = jwt.encode({'user_id': user.id, 'exp' : expiration}, app.config['SECRET_KEY'], algorithm="HS256")  
+                    return {"status": 1000, "type": str(user.user_type), "token": token, "verificado": str(user.verificado)} #Valido
                 else:
                     return {"status": 1010} #Invalido
             else:
