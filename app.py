@@ -162,6 +162,16 @@ def token_required(f):
         return f(*args, **kwargs)
    return decorator
 
+def toDict(user: Usuario):
+    return {
+        "id": user.id,
+        "real_name": user.real_name,
+        "verificado": user.verificado,
+        "user_name": user.user_name,
+        "user_type": user.user_type,
+        "email": user.email
+    }
+
 @app.route('/')
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
@@ -265,7 +275,7 @@ def login():
             if user:
                 if user.password == data['password']:
                     expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
-                    token = jwt.encode({'user_id': user.id, 'exp' : expiration}, app.config['SECRET_KEY'], algorithm="HS256")  
+                    token = jwt.encode({'user': toDict(user), 'exp' : expiration}, app.config['SECRET_KEY'], algorithm="HS256")  
                     return {"status": 1000, "type": str(user.user_type), "token": token, "verificado": str(user.verificado)} #Valido
                 else:
                     return {"status": 1010} #Invalido
