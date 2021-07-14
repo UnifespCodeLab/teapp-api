@@ -146,6 +146,22 @@ class Form_Socioeconomico(db.Model):
         self.pessoa_amamenta = pessoa_amamenta
         self.preenchido = True
 
+def token_required(f):
+   @wraps(f)
+   def decorator(*args, **kwargs):
+        token = None
+        try:
+            token = request.headers['Authorization'].split("Bearer ")[1]
+        except:
+            return {'message': 'a valid token is missing'}
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
+        except:
+            return {'message': 'token is invalid'}
+        return f(data['user_id'],*args, **kwargs)
+   return decorator
+
 @app.route('/')
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
@@ -206,7 +222,8 @@ def form_socio(id):
 
 @app.route('/users', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-def users():
+@token_required
+def users(id):
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
