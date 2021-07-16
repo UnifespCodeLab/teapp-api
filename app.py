@@ -209,10 +209,12 @@ def users():
         if request.is_json:
             data = request.get_json()
             new_user = Usuario(real_name=data['real_name'], password=data['password'], user_name=data['user_name'], user_type=data['user_type'], bairro=data['bairro'])
+            if "email" in data:
+                new_user.email = data['email']
             db.session.add(new_user)
             db.session.commit()
             
-            new_user = Usuario.query.filter_by(email=data['email'],real_name=data['real_name']).first()
+            new_user = Usuario.query.filter_by(user_name=data['user_name'],real_name=data['real_name']).first()
             new_user_not = Notificacoes_Conf(usuario=new_user.id, sistema=False, selo_postagem=False, comentario_postagem=False, saude=False, lazer=False, trocas=False)
             db.session.add(new_user_not)
             db.session.commit()
@@ -237,9 +239,9 @@ def login():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            user = Usuario.query.filter_by(email=data['email']).first()
+            user = Usuario.query.filter_by(user_name=data['username']).first()
             if user is None:
-                user = Usuario.query.filter_by(user_name=data['user_name']).first()
+                user = Usuario.query.filter_by(email=data['username']).first()
             if user:
                 if user.password == data['password']:
                     return {"status": 1000, "type": str(user.user_type), "id": str(user.id), "verificado": str(user.verificado)} #Valido
