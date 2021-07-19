@@ -156,7 +156,7 @@ def token_required(f):
             return {'message': 'a valid token is missing'}
 
         try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-local-api'), algorithms=["HS256"], options={"require": ["exp", "sub", "iss", "aud"], "verify_aud": False, "verify_iat": False, "verify_nbf": False})
+            data = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-api-local'), algorithms=["HS256"], options={"require": ["exp", "sub", "iss", "aud"], "verify_aud": False, "verify_iat": False, "verify_nbf": False})
         except jwt.exceptions.InvalidKeyError:
             return {'message': 'Secret Key is not in the proper format'}
         except jwt.exceptions.InvalidAlgorithmError:
@@ -293,7 +293,7 @@ def login():
                 if user.password == data['password']:
                     expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
                     issuedAt = datetime.datetime.utcnow()
-                    token = jwt.encode({'auth': AUTH_VERSION, 'exp': expiration, 'iat': issuedAt, 'sub': user.id, 'iss': os.environ.get('ME', 'plasmedis-local-api'), 'aud': request.args.get('aud', 'unknown')}, app.config['SECRET_KEY'], algorithm="HS256")
+                    token = jwt.encode({'auth': AUTH_VERSION, 'exp': expiration, 'iat': issuedAt, 'sub': user.id, 'iss': os.environ.get('ME', 'plasmedis-api-local'), 'aud': request.args.get('aud', 'unknown')}, app.config['SECRET_KEY'], algorithm="HS256")
                     return {"status": 1000, "user": toDict(user), "token": token, "verificado": str(user.verificado)} #Valido
                 else:
                     return {"status": 1010} #Invalido
