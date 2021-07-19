@@ -535,7 +535,7 @@ def esqueci_senha():
         else:
             return {"error": "A requisição não está no formato esperado"}
 
-@app.route('/user/username/verify/<username>', methods=['GET'])
+@app.route('/users/username/verify/<username>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def verify_username(username):
     user = Usuario.query.filter_by(user_name=username).first()
