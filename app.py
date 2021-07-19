@@ -264,7 +264,7 @@ def users():
             db.session.add(new_user_not)
             db.session.commit()
 
-            return {"message": f"Usuario criado"}
+            return {"message": f"Usuario criado", "user": new_user.id}
         else:
             return {"error": "A requisição não foi feita no formato esperado"}
 
