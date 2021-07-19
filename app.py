@@ -606,6 +606,7 @@ def esqueci_senha():
 
 @app.route('/users/username/verify/<username>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def verify_username(username):
     user = Usuario.query.filter_by(user_name=username).first()
     if user:
