@@ -156,7 +156,7 @@ def token_required(f):
             return {'message': 'a valid token is missing'}
 
         try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-local-api'), algorithms=["HS256"], options={"require": ["exp", "sub", "iss", "aud"], "verify_aud": False, "verify_iat": False, "verify_nbf": False})
+            data = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-api-local'), algorithms=["HS256"], options={"require": ["exp", "sub", "iss", "aud"], "verify_aud": False, "verify_iat": False, "verify_nbf": False})
         except jwt.exceptions.InvalidKeyError:
             return {'message': 'Secret Key is not in the proper format'}
         except jwt.exceptions.InvalidAlgorithmError:
@@ -254,15 +254,17 @@ def users():
         if request.is_json:
             data = request.get_json()
             new_user = Usuario(real_name=data['real_name'], password=data['password'], user_name=data['user_name'], user_type=data['user_type'], bairro=data['bairro'])
+            if "email" in data:
+                new_user.email = data['email']
             db.session.add(new_user)
             db.session.commit()
-
-            new_user = Usuario.query.filter_by(email=data['email'],real_name=data['real_name']).first()
+            
+            new_user = Usuario.query.filter_by(user_name=data['user_name'],real_name=data['real_name']).first()
             new_user_not = Notificacoes_Conf(usuario=new_user.id, sistema=False, selo_postagem=False, comentario_postagem=False, saude=False, lazer=False, trocas=False)
             db.session.add(new_user_not)
             db.session.commit()
 
-            return {"message": f"Usuario criado"}
+            return {"message": f"Usuario criado", "user": new_user.id}
         else:
             return {"error": "A requisição não foi feita no formato esperado"}
 
@@ -284,14 +286,14 @@ def login():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            user = Usuario.query.filter_by(email=data['email']).first()
+            user = Usuario.query.filter_by(user_name=data['username']).first()
             if user is None:
-                user = Usuario.query.filter_by(user_name=data['user_name']).first()
+                user = Usuario.query.filter_by(email=data['username']).first()
             if user:
                 if user.password == data['password']:
                     expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
                     issuedAt = datetime.datetime.utcnow()
-                    token = jwt.encode({'auth': AUTH_VERSION, 'exp': expiration, 'iat': issuedAt, 'sub': user.id, 'iss': os.environ.get('ME', 'plasmedis-local-api'), 'aud': request.args.get('aud', 'unknown')}, app.config['SECRET_KEY'], algorithm="HS256")
+                    token = jwt.encode({'auth': AUTH_VERSION, 'exp': expiration, 'iat': issuedAt, 'sub': user.id, 'iss': os.environ.get('ME', 'plasmedis-api-local'), 'aud': request.args.get('aud', 'unknown')}, app.config['SECRET_KEY'], algorithm="HS256")
                     return {"status": 1000, "user": toDict(user), "token": token, "verificado": str(user.verificado)} #Valido
                 else:
                     return {"status": 1010} #Invalido
