@@ -14,7 +14,7 @@ cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgresql://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRETKEY', "N5Rc6dvl8giHxExSXQmJ")
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "N5Rc6dvl8giHxExSXQmJ")
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -156,9 +156,22 @@ def token_required(f):
             return {'message': 'a valid token is missing'}
 
         try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
-        except:
-            return {'message': 'token is invalid'}
+            data = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-local-api'), algorithms=["HS256"], options={"require": ["exp", "sub", "iss", "aud"], "verify_aud": False, "verify_iat": False, "verify_nbf": False})
+        except jwt.exceptions.InvalidKeyError:
+            return {'message': 'Secret Key is not in the proper format'}
+        except jwt.exceptions.InvalidAlgorithmError:
+            return {'message': 'Algorithm is not recognized by PyJWT'}
+        except jwt.exceptions.ExpiredSignatureError:
+            return {'message': 'Token is expired'}
+        except jwt.exceptions.InvalidIssuerError:
+            return {'message': 'Token has a different issuer'}
+        except jwt.exceptions.MissingRequiredClaimError:
+            return {'message': 'Token is missing a required claim'}
+        except jwt.exceptions.DecodeError:
+            return {'message': 'Token failed validation'}
+        except Exception as ex:
+            return {'message': 'There was a error decoding the token'}
+
         return f(*args, **kwargs)
    return decorator
 
@@ -214,7 +227,7 @@ def form_socio(id):
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=data['pessoa'], qtd_pessoas_familia=data['qtd_pessoas_familia'], 
+            new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=data['pessoa'], qtd_pessoas_familia=data['qtd_pessoas_familia'],
             pessoa_amamenta=data['pessoa_amamenta'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], qtd_gestantes=data['qtd_gestantes'])
             db.session.add(new_form)
             db.session.commit()
@@ -243,7 +256,7 @@ def users():
             new_user = Usuario(real_name=data['real_name'], password=data['password'], user_name=data['user_name'], user_type=data['user_type'], bairro=data['bairro'])
             db.session.add(new_user)
             db.session.commit()
-            
+
             new_user = Usuario.query.filter_by(email=data['email'],real_name=data['real_name']).first()
             new_user_not = Notificacoes_Conf(usuario=new_user.id, sistema=False, selo_postagem=False, comentario_postagem=False, saude=False, lazer=False, trocas=False)
             db.session.add(new_user_not)
@@ -263,9 +276,11 @@ def users():
 
         return {"count": len(results), "users": results, "message": "success"}
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def login():
+    AUTH_VERSION = os.environ.get("AUTH_VERSION", 0.2)
+
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
@@ -275,14 +290,20 @@ def login():
             if user:
                 if user.password == data['password']:
                     expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
-                    token = jwt.encode({'user': toDict(user), 'exp' : expiration}, app.config['SECRET_KEY'], algorithm="HS256")  
-                    return {"status": 1000, "type": str(user.user_type), "token": token, "verificado": str(user.verificado)} #Valido
+                    issuedAt = datetime.datetime.utcnow()
+                    token = jwt.encode({'auth': AUTH_VERSION, 'exp': expiration, 'iat': issuedAt, 'sub': user.id, 'iss': os.environ.get('ME', 'plasmedis-local-api'), 'aud': request.args.get('aud', 'unknown')}, app.config['SECRET_KEY'], algorithm="HS256")
+                    return {"status": 1000, "user": toDict(user), "token": token, "verificado": str(user.verificado)} #Valido
                 else:
                     return {"status": 1010} #Invalido
             else:
                 return {"status": 1010} #Invalido
         else:
             return {"error": "A requisição não foi feita no formato esperado"}
+    elif request.method == 'GET':
+        # retorna um marcador de versão, para quando as mudanças no token forem tão significativas que o único
+        # jeito de atualizar algo no front vai ser matando a sessão atual do usuário
+        return {'version': AUTH_VERSION}
+
 
 
 @app.route('/privileges', methods=['POST', 'GET'])
@@ -538,10 +559,10 @@ def comentarios_postagem(postagem_id):
         results = [
         {
             "texto": comment.texto,
-            "criador": 
-                { 
-                    "id": comment.criador, 
-                    "name": next(filter(lambda user: user.id == comment.criador, users)).real_name  
+            "criador":
+                {
+                    "id": comment.criador,
+                    "name": next(filter(lambda user: user.id == comment.criador, users)).real_name
                 },
             "resposta": comment.resposta,
             "data": comment.data
@@ -559,15 +580,15 @@ def esqueci_senha():
             usuario = data["id"]
             usuario = int(usuario)
             row = Usuario.query.filter_by(id=usuario).one()
-          
+
             #Conecta e inicia o serviço de email
             smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
             res = smtpObj.starttls()
 
             #Criei essa conta para mandar o email
             smtpObj.login('codelabtesteesquecisenha@gmail.com', '44D6DDAAC9C660F72D6490D7CC44731BEA7C236A9241B387D3E9AF0C66B30D49')
-            
-            #Gera uma hash que servirá como senha temporaria 
+
+            #Gera uma hash que servirá como senha temporaria
             hash = str(random.getrandbits(128))
             email =  row.email
             row.password = hash
@@ -575,9 +596,9 @@ def esqueci_senha():
             db.session.commit()
             msg = "\n\nSua nova senha e " +hash
             smtpObj.sendmail('codelabtesteesquecisenha@gmail.com',email,  msg )
-            
+
             return("A senha temporaria foi enviada para o email " + row.email)
-        
+
         else:
             return {"error": "A requisição não está no formato esperado"}
 
