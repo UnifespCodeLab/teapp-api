@@ -604,5 +604,15 @@ def esqueci_senha():
         else:
             return {"error": "A requisição não está no formato esperado"}
 
+@app.route('/users/username/verify/<username>', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def verify_username(username):
+    user = Usuario.query.filter_by(user_name=username).first()
+    if user:
+        return { "success": False, "message": "User with username '" + str(username) + "' already exists." }
+    else:
+        return { "success": True, "message": "Username '" + str(username) + "' is available."}
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8000)
