@@ -5,14 +5,16 @@ from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
 import smtplib
 import random
-
-
+import jwt
+import datetime
+from functools import wraps
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgres://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgresql://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "N5Rc6dvl8giHxExSXQmJ")
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -144,12 +146,53 @@ class Form_Socioeconomico(db.Model):
         self.pessoa_amamenta = pessoa_amamenta
         self.preenchido = True
 
+def token_required(f):
+   @wraps(f)
+   def decorator(*args, **kwargs):
+        token = None
+        try:
+            token = request.headers['Authorization'].split("Bearer ")[1]
+        except:
+            return {'message': 'a valid token is missing'}
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-local-api'), algorithms=["HS256"], options={"require": ["exp", "sub", "iss", "aud"], "verify_aud": False, "verify_iat": False, "verify_nbf": False})
+        except jwt.exceptions.InvalidKeyError:
+            return {'message': 'Secret Key is not in the proper format'}
+        except jwt.exceptions.InvalidAlgorithmError:
+            return {'message': 'Algorithm is not recognized by PyJWT'}
+        except jwt.exceptions.ExpiredSignatureError:
+            return {'message': 'Token is expired'}
+        except jwt.exceptions.InvalidIssuerError:
+            return {'message': 'Token has a different issuer'}
+        except jwt.exceptions.MissingRequiredClaimError:
+            return {'message': 'Token is missing a required claim'}
+        except jwt.exceptions.DecodeError:
+            return {'message': 'Token failed validation'}
+        except Exception as ex:
+            return {'message': 'There was a error decoding the token'}
+
+        return f(*args, **kwargs)
+   return decorator
+
+def toDict(user: Usuario):
+    return {
+        "id": user.id,
+        "real_name": user.real_name,
+        "verificado": user.verificado,
+        "user_name": user.user_name,
+        "user_type": user.user_type,
+        "email": user.email
+    }
+
 @app.route('/')
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
 	return "This API Works! [" + os.environ.get("ENV", "DEV") + "]"
 
 @app.route('/users/<id>/notificacoes_conf', methods=['PUT', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def handle_user_notificacao(id):
     user_not = Notificacoes_Conf.query.filter_by(usuario=id).first()
 
@@ -179,11 +222,12 @@ def handle_user_notificacao(id):
 
 @app.route('/form_socio/<id>', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def form_socio(id):
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=data['pessoa'], qtd_pessoas_familia=data['qtd_pessoas_familia'], 
+            new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=data['pessoa'], qtd_pessoas_familia=data['qtd_pessoas_familia'],
             pessoa_amamenta=data['pessoa_amamenta'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], qtd_gestantes=data['qtd_gestantes'])
             db.session.add(new_form)
             db.session.commit()
@@ -204,6 +248,7 @@ def form_socio(id):
 
 @app.route('/users', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def users():
     if request.method == 'POST':
         if request.is_json:
@@ -233,9 +278,11 @@ def users():
 
         return {"count": len(results), "users": results, "message": "success"}
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def login():
+    AUTH_VERSION = os.environ.get("AUTH_VERSION", 0.2)
+
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
@@ -244,17 +291,26 @@ def login():
                 user = Usuario.query.filter_by(email=data['username']).first()
             if user:
                 if user.password == data['password']:
-                    return {"status": 1000, "type": str(user.user_type), "id": str(user.id), "verificado": str(user.verificado)} #Valido
+                    expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+                    issuedAt = datetime.datetime.utcnow()
+                    token = jwt.encode({'auth': AUTH_VERSION, 'exp': expiration, 'iat': issuedAt, 'sub': user.id, 'iss': os.environ.get('ME', 'plasmedis-local-api'), 'aud': request.args.get('aud', 'unknown')}, app.config['SECRET_KEY'], algorithm="HS256")
+                    return {"status": 1000, "user": toDict(user), "token": token, "verificado": str(user.verificado)} #Valido
                 else:
                     return {"status": 1010} #Invalido
             else:
                 return {"status": 1010} #Invalido
         else:
             return {"error": "A requisição não foi feita no formato esperado"}
+    elif request.method == 'GET':
+        # retorna um marcador de versão, para quando as mudanças no token forem tão significativas que o único
+        # jeito de atualizar algo no front vai ser matando a sessão atual do usuário
+        return {'version': AUTH_VERSION}
+
 
 
 @app.route('/privileges', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def privileges():
     if request.method == 'POST':
         if request.is_json:
@@ -279,6 +335,7 @@ def privileges():
 
 @app.route('/bairros', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def bairros():
     if request.method == 'POST':
         if request.is_json:
@@ -304,6 +361,7 @@ def bairros():
 
 @app.route('/categorias', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def categorias():
     if request.method == 'POST':
         if request.is_json:
@@ -329,6 +387,7 @@ def categorias():
 
 @app.route('/users/<id>', methods=['GET', 'PUT', 'DELETE'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def handle_user(id):
     user = Usuario.query.get_or_404(id)
 
@@ -372,6 +431,7 @@ def handle_user(id):
 
 @app.route('/selo/<id>', methods=['PUT'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def selo(id):
     postagem = Postagem.query.get_or_404(id)
     if request.method == 'PUT':
@@ -385,6 +445,7 @@ def selo(id):
 
 @app.route('/postagens', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def postagens():
     if request.method == 'POST':
         if request.is_json:
@@ -419,6 +480,7 @@ def postagens():
 
 @app.route('/recomendados', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def recomendados():
     if request.method == 'GET':
         postagens = Postagem.query.filter_by(selo=True).all()
@@ -431,6 +493,7 @@ def recomendados():
 
 @app.route('/postagens/<id_categoria>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def filtros(id_categoria):
     postagens = Postagem.query.join(Categoria, id_categoria == Postagem.categoria)
     print(postagens)
@@ -443,6 +506,7 @@ def filtros(id_categoria):
 
 @app.route('/lista_postagens/<id>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def lista_postagens(id):
     if request.method == 'GET':
         try :
@@ -459,6 +523,7 @@ def lista_postagens(id):
 
 @app.route('/comentarios', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def comentarios():
     if request.method == 'POST':
         if request.is_json:
@@ -487,6 +552,7 @@ def comentarios():
 
 @app.route('/comentarios/<postagem_id>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def comentarios_postagem(postagem_id):
     if request.method == 'GET':
         comments = Comentario.query.filter_by(postagem=postagem_id).all()
@@ -495,10 +561,10 @@ def comentarios_postagem(postagem_id):
         results = [
         {
             "texto": comment.texto,
-            "criador": 
-                { 
-                    "id": comment.criador, 
-                    "name": next(filter(lambda user: user.id == comment.criador, users)).real_name  
+            "criador":
+                {
+                    "id": comment.criador,
+                    "name": next(filter(lambda user: user.id == comment.criador, users)).real_name
                 },
             "resposta": comment.resposta,
             "data": comment.data
@@ -508,6 +574,7 @@ def comentarios_postagem(postagem_id):
 
 @app.route('/esqueci_senha', methods=['Get', 'Post'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
 def esqueci_senha():
      if request.method == 'POST':
         if request.is_json:
@@ -515,15 +582,15 @@ def esqueci_senha():
             usuario = data["id"]
             usuario = int(usuario)
             row = Usuario.query.filter_by(id=usuario).one()
-          
+
             #Conecta e inicia o serviço de email
             smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
             res = smtpObj.starttls()
 
             #Criei essa conta para mandar o email
             smtpObj.login('codelabtesteesquecisenha@gmail.com', '44D6DDAAC9C660F72D6490D7CC44731BEA7C236A9241B387D3E9AF0C66B30D49')
-            
-            #Gera uma hash que servirá como senha temporaria 
+
+            #Gera uma hash que servirá como senha temporaria
             hash = str(random.getrandbits(128))
             email =  row.email
             row.password = hash
@@ -531,9 +598,9 @@ def esqueci_senha():
             db.session.commit()
             msg = "\n\nSua nova senha e " +hash
             smtpObj.sendmail('codelabtesteesquecisenha@gmail.com',email,  msg )
-            
+
             return("A senha temporaria foi enviada para o email " + row.email)
-        
+
         else:
             return {"error": "A requisição não está no formato esperado"}
 
