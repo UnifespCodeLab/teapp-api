@@ -237,14 +237,23 @@ def form_socio(id):
             return {"error": "O envio não foi feita no formato esperado"}
 
     elif request.method == 'GET':
-        forms = Form_Socioeconomico.query.all()
+        forms = Form_Socioeconomico.query.filter_by(pessoa=id).all()
+        results = []
         for form in forms:
-            if form.preenchido and id == form.pessoa:
-                results = [{
-                    "respondido": form.preenchido
-                }]
+            if form.preenchido:
+                results.append({
+                    "preenchido": form.preenchido,
+                    "nome_rep": form.nome_rep_familia,
+                    "qtd_pessoas": form.qtd_pessoas_familia,
+                    "qtd_criancas": form.qtd_criancas,
+                    "gestante": form.gestante,
+                    "qtd_amamentando": form.qtd_amamentando,
+                    "qtd_criancas_deficiencia": form.qtd_criancas_deficiencia,
+                    "pessoa_amamenta": form.pessoa_amamenta,
+                    "qtd_gestantes": form.qtd_gestantes
+                })
 
-        return {"count": len(results), "users": results, "message": "success"}
+        return {"count": len(results), "users": results}
 
 @app.route('/users', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
