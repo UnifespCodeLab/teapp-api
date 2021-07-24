@@ -513,6 +513,31 @@ def filtros(id_categoria):
 
     return {"count": len(results), "post": results, "message": "success"}
 
+@app.route('/postagens/<id>', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def postagensId(id):
+    post = Postagem.query.filter_by(id=id).first()
+    #TODO: Criar uma estrutura com 'services' com funções para facilitar a vida (e evitar ter que fazer encode decode do json)
+    import json
+    comments = comentarios_postagem(post.id).response[0].decode('utf-8')
+    comments = json.loads(comments)
+    post_user = Usuario.query.get_or_404(id)
+    result = {
+        "id": post.id,
+        "titulo": post.titulo,
+        "texto": post.texto,
+        "criador": {
+            "id": post_user.id,
+            "name": post_user.real_name
+        },
+        "selo":post.selo,
+        "categoria":post.categoria,
+        "data": post.data,
+        "comentarios": comments['comments']
+    }
+    return result
+
 @app.route('/lista_postagens/<id>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
