@@ -500,7 +500,7 @@ def recomendados():
 
         return {"count": len(results), "post": results, "message": "success"}
 
-@app.route('/postagens/<id_categoria>', methods=['GET'])
+@app.route('/postagens/categorias/<id_categoria>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def filtros(id_categoria):
