@@ -255,6 +255,55 @@ def form_socio(id):
 
         return {"count": len(results), "users": results}
 
+@app.route('/form_socio_by_user_id/<user_id>', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def form_socio_get_by_user(user_id):
+        if request.method == 'POST':
+            if request.is_json:
+                data = request.get_json()
+                form = Form_Socioeconomico.query.filter_by(pessoa=user_id).first()
+                if form is None:
+                    new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=user_id, qtd_pessoas_familia=data['qtd_pessoas_familia'],
+                    pessoa_amamenta=data['pessoa_amamenta'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], qtd_gestantes=data['qtd_gestantes'])
+                    db.session.add(new_form)
+                    db.session.commit()
+                    return {"status":"1000", "message":"created"}
+
+                else:
+                    form.nome_rep_familia = data['nome_rep_familia']
+                    form.qtd_pessoas_familia = data['qtd_pessoas_familia']
+                    form.pessoa_amamenta = data['pessoa_amamenta']
+                    form.qtd_criancas = data['qtd_criancas']
+                    form.gestante = data['gestante']
+                    form.qtd_amamentando = data['qtd_amamentando']
+                    form.qtd_criancas_deficiencia = data['qtd_criancas_deficiencia']
+                    form.qtd_gestantes = data['qtd_gestantes']
+
+                    db.session.add(form)
+                    db.session.commit()
+
+                    return {"status":"1000", "message":"updated"}
+            else:
+                return {"error": "O envio não foi feita no formato esperado"}
+        
+        elif request.method == 'GET':
+            form = Form_Socioeconomico.query.filter_by(pessoa=user_id).one()
+            response = {
+                    "nome_rep_familia": form.nome_rep_familia,
+                    "qtd_pessoas_familia": form.qtd_pessoas_familia,
+                    "qtd_criancas": form.qtd_criancas,
+                    "pessoa_amamenta": form.pessoa_amamenta,
+                    "qtd_criancas": form.qtd_criancas,
+                    "gestante": form.gestante,
+                    "qtd_amamentando": form.qtd_amamentando,
+                    "qtd_criancas_deficiencia": form.qtd_criancas_deficiencia,
+                    "qtd_gestantes": form.qtd_gestantes,
+            }
+
+            return {"message": "success", "form": response}
+
+
 @app.route('/users', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
