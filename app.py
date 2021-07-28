@@ -8,6 +8,7 @@ import random
 import jwt
 import datetime
 from functools import wraps
+from sqlalchemy import func, sql
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
@@ -468,22 +469,30 @@ def postagens():
         else:
             return {"error": "A requisição não está no formato esperado"}
     elif request.method == 'GET':
-        postagensWithCriador = Postagem.query.join(Usuario, Postagem.criador == Usuario.id, isouter=True).add_columns(Usuario.real_name, Usuario.bairro)
+        postagens = Postagem.query.outerjoin(Comentario).add_columns(func.count(Comentario.id).label('comentarios')).group_by(Postagem.id)
+
+        # postagensWithCriador = Postagem.query.join(Usuario, Postagem.criador == Usuario.id, isouter=True).outerjoin(
+        #     Comentario).add_columns(Usuario.id, Usuario.real_name, Usuario.bairro, func.count(Comentario.id).label('comentarios')).group_by(Postagem.id, Usuario.id)
 
         # filtros gerais
         bairro = request.args.get('bairro', None)
         categoria = request.args.get('categoria', None)
 
         if categoria is not None:
-            postagensWithCriador = postagensWithCriador.filter(Postagem.categoria.in_(map(int, categoria.split(','))))
+            postagensWithCriador = postagens.filter(Postagem.categoria.in_(map(int, categoria.split(','))))
 
-        if bairro is not None:
-            postagensWithCriador = postagensWithCriador.filter(Usuario.bairro.in_(map(int, bairro.split(','))))
+        # if bairro is not None:
+        #     postagensWithCriador = postagens.filter(Usuario.bairro.in_(map(int, bairro.split(','))))
 
-        postagens = postagensWithCriador.all()
+        postagens = postagens.all()
         results = []
         for post in postagens:
-            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria,"data":post.Postagem.data.strftime("%Y-%m-%dT%H:%M:%S")})
+            user = Usuario.query.get_or_404(post.Postagem.criador)
+            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo, "texto": post.Postagem.texto,
+                            "criador": user.real_name, "bairro": user.bairro, "selo": post.Postagem.selo,
+                            "categoria": post.Postagem.categoria,
+                            "data": post.Postagem.data.strftime("%Y-%m-%dT%H:%M:%S"),
+                            "comentarios": post.comentarios})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -492,11 +501,13 @@ def postagens():
 @token_required
 def recomendados():
     if request.method == 'GET':
-        postagens = Postagem.query.filter_by(selo=True).all()
+        postagens = db.session.query(Postagem, func.count(Comentario.id).label('comentarios')).outerjoin(Comentario).filter(Postagem.selo == True).group_by(Postagem.id)
+
         results = []
-        for post in postagens:
+        for post, comentarios in postagens:
             user = Usuario.query.get_or_404(post.criador)
-            results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+            results.append({"id": post.id, "titulo": post.titulo, "texto": post.texto, "criador": user.real_name,
+                            "selo": post.selo, "categoria": post.categoria, "comentarios": comentarios})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -504,12 +515,14 @@ def recomendados():
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def filtros(id_categoria):
-    postagens = Postagem.query.join(Categoria, id_categoria == Postagem.categoria)
-    print(postagens)
+    postagens = db.session.query(Postagem, func.count(Comentario.id).label('comentarios')).outerjoin(Comentario).filter(Postagem.categoria == id_categoria).group_by(Postagem.id)
+
     results = []
-    for post in postagens:
+    for post, comentarios in postagens:
         user = Usuario.query.get_or_404(post.criador)
-        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria, "data": post.data.strftime("%Y-%m-%dT%H:%M:%S")})
+        results.append(
+            {"id": post.id, "titulo": post.titulo, "texto": post.texto, "criador": user.real_name, "selo": post.selo,
+             "categoria": post.categoria, "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"), "comentarios": comentarios})
 
     return {"count": len(results), "post": results, "message": "success"}
 
@@ -522,7 +535,7 @@ def postagensId(id):
     import json
     comments = comentarios_postagem(post.id).response[0].decode('utf-8')
     comments = json.loads(comments)
-    post_user = Usuario.query.get_or_404(id)
+    post_user = Usuario.query.get_or_404(post.criador)
     result = {
         "id": post.id,
         "titulo": post.titulo,
