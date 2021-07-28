@@ -90,7 +90,7 @@ class Postagem(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
     selo = db.Column(db.Boolean, default=False, nullable=False)
-    data = db.Column(db.Time)
+    data = db.Column(db.Time, nullable=False)
 
     def __init__(self, titulo, texto, criador, categoria):
         self.titulo = titulo
@@ -113,7 +113,7 @@ class Comentario(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
-    data = db.Column(db.Time)
+    data = db.Column(db.Time, nullable=False)
 
     def __init__(self, texto, criador, postagem, resposta):
         self.texto = texto
@@ -483,7 +483,7 @@ def postagens():
         postagens = postagensWithCriador.all()
         results = []
         for post in postagens:
-            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria,"data":post.Postagem.data})
+            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria,"data":post.Postagem.data.strftime("%Y-%m-%dT%H:%M:%S")})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -509,7 +509,7 @@ def filtros(id_categoria):
     results = []
     for post in postagens:
         user = Usuario.query.get_or_404(post.criador)
-        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria, "data": post.data})
+        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria, "data": post.data.strftime("%Y-%m-%dT%H:%M:%S")})
 
     return {"count": len(results), "post": results, "message": "success"}
 
@@ -533,7 +533,7 @@ def postagensId(id):
         },
         "selo":post.selo,
         "categoria":post.categoria,
-        "data": post.data,
+        "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"),
         "comentarios": comments['comments']
     }
     return result
@@ -579,7 +579,7 @@ def comentarios():
                 "criador": comment.criador,
                 "postagem": comment.postagem,
                 "resposta": comment.resposta,
-                "data": comment.data
+                "data": comment.data.strftime("%Y-%m-%dT%H:%M:%S")
             } for comment in comments]
 
         return {"count": len(results), "comments": results, "message": "success"}
@@ -601,7 +601,7 @@ def comentarios_postagem(postagem_id):
                     "name": next(filter(lambda user: user.id == comment.criador, users)).real_name
                 },
             "resposta": comment.resposta,
-            "data": comment.data
+            "data": comment.data.strftime("%Y-%m-%dT%H:%M:%S")
         } for comment in comments]
         return {"user": 1,"count": len(results), "comments": results, "message": "success"}
 
