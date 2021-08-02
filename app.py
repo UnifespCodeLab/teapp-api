@@ -91,7 +91,7 @@ class Postagem(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
     selo = db.Column(db.Boolean, default=False, nullable=False)
-    data = db.Column(db.Time, nullable=False)
+    data = db.Column(db.DateTime(timezone=True), default=datetime.datetime.utcnow)
 
     def __init__(self, titulo, texto, criador, categoria):
         self.titulo = titulo
@@ -114,7 +114,7 @@ class Comentario(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
-    data = db.Column(db.Time, nullable=False)
+    data = db.Column(db.DateTime(timezone=True), default=datetime.datetime.utcnow)
 
     def __init__(self, texto, criador, postagem, resposta):
         self.texto = texto
