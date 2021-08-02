@@ -8,6 +8,7 @@ import random
 import jwt
 import datetime
 from functools import wraps
+from sqlalchemy import func, sql
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
@@ -90,7 +91,7 @@ class Postagem(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
     selo = db.Column(db.Boolean, default=False, nullable=False)
-    data = db.Column(db.Time)
+    data = db.Column(db.Time, nullable=False)
 
     def __init__(self, titulo, texto, criador, categoria):
         self.titulo = titulo
@@ -113,7 +114,7 @@ class Comentario(db.Model):
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
-    data = db.Column(db.Time)
+    data = db.Column(db.Time, nullable=False)
 
     def __init__(self, texto, criador, postagem, resposta):
         self.texto = texto
@@ -237,14 +238,72 @@ def form_socio(id):
             return {"error": "O envio não foi feita no formato esperado"}
 
     elif request.method == 'GET':
-        forms = Form_Socioeconomico.query.all()
+        forms = Form_Socioeconomico.query.filter_by(pessoa=id).all()
+        results = []
         for form in forms:
-            if form.preenchido and id == form.pessoa:
-                results = [{
-                    "respondido": form.preenchido
-                }]
+            if form.preenchido:
+                results.append({
+                    "preenchido": form.preenchido,
+                    "nome_rep": form.nome_rep_familia,
+                    "qtd_pessoas": form.qtd_pessoas_familia,
+                    "qtd_criancas": form.qtd_criancas,
+                    "gestante": form.gestante,
+                    "qtd_amamentando": form.qtd_amamentando,
+                    "qtd_criancas_deficiencia": form.qtd_criancas_deficiencia,
+                    "pessoa_amamenta": form.pessoa_amamenta,
+                    "qtd_gestantes": form.qtd_gestantes
+                })
 
-        return {"count": len(results), "users": results, "message": "success"}
+        return {"count": len(results), "users": results}
+
+@app.route('/form_socio_by_user_id/<user_id>', methods=['POST', 'GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def form_socio_get_by_user(user_id):
+        if request.method == 'POST':
+            if request.is_json:
+                data = request.get_json()
+                form = Form_Socioeconomico.query.filter_by(pessoa=user_id).first()
+                if form is None:
+                    new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=user_id, qtd_pessoas_familia=data['qtd_pessoas_familia'],
+                    pessoa_amamenta=data['pessoa_amamenta'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], qtd_gestantes=data['qtd_gestantes'])
+                    db.session.add(new_form)
+                    db.session.commit()
+                    return {"status":"1000", "message":"created"}
+
+                else:
+                    form.nome_rep_familia = data['nome_rep_familia']
+                    form.qtd_pessoas_familia = data['qtd_pessoas_familia']
+                    form.pessoa_amamenta = data['pessoa_amamenta']
+                    form.qtd_criancas = data['qtd_criancas']
+                    form.gestante = data['gestante']
+                    form.qtd_amamentando = data['qtd_amamentando']
+                    form.qtd_criancas_deficiencia = data['qtd_criancas_deficiencia']
+                    form.qtd_gestantes = data['qtd_gestantes']
+
+                    db.session.add(form)
+                    db.session.commit()
+
+                    return {"status":"1000", "message":"updated"}
+            else:
+                return {"error": "O envio não foi feita no formato esperado"}
+        
+        elif request.method == 'GET':
+            form = Form_Socioeconomico.query.filter_by(pessoa=user_id).one()
+            response = {
+                    "nome_rep_familia": form.nome_rep_familia,
+                    "qtd_pessoas_familia": form.qtd_pessoas_familia,
+                    "qtd_criancas": form.qtd_criancas,
+                    "pessoa_amamenta": form.pessoa_amamenta,
+                    "qtd_criancas": form.qtd_criancas,
+                    "gestante": form.gestante,
+                    "qtd_amamentando": form.qtd_amamentando,
+                    "qtd_criancas_deficiencia": form.qtd_criancas_deficiencia,
+                    "qtd_gestantes": form.qtd_gestantes,
+            }
+
+            return {"message": "success", "form": response}
+
 
 @app.route('/users', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -459,22 +518,30 @@ def postagens():
         else:
             return {"error": "A requisição não está no formato esperado"}
     elif request.method == 'GET':
-        postagensWithCriador = Postagem.query.join(Usuario, Postagem.criador == Usuario.id, isouter=True).add_columns(Usuario.real_name, Usuario.bairro)
+        postagens = Postagem.query.outerjoin(Comentario).add_columns(func.count(Comentario.id).label('comentarios')).group_by(Postagem.id)
+
+        # postagensWithCriador = Postagem.query.join(Usuario, Postagem.criador == Usuario.id, isouter=True).outerjoin(
+        #     Comentario).add_columns(Usuario.id, Usuario.real_name, Usuario.bairro, func.count(Comentario.id).label('comentarios')).group_by(Postagem.id, Usuario.id)
 
         # filtros gerais
         bairro = request.args.get('bairro', None)
         categoria = request.args.get('categoria', None)
 
         if categoria is not None:
-            postagensWithCriador = postagensWithCriador.filter(Postagem.categoria.in_(map(int, categoria.split(','))))
+            postagensWithCriador = postagens.filter(Postagem.categoria.in_(map(int, categoria.split(','))))
 
-        if bairro is not None:
-            postagensWithCriador = postagensWithCriador.filter(Usuario.bairro.in_(map(int, bairro.split(','))))
+        # if bairro is not None:
+        #     postagensWithCriador = postagens.filter(Usuario.bairro.in_(map(int, bairro.split(','))))
 
-        postagens = postagensWithCriador.all()
+        postagens = postagens.all()
         results = []
         for post in postagens:
-            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo,"texto": post.Postagem.texto,"criador": post.real_name,"bairro": post.bairro,"selo":post.Postagem.selo,"categoria":post.Postagem.categoria,"data":post.Postagem.data})
+            user = Usuario.query.get_or_404(post.Postagem.criador)
+            results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo, "texto": post.Postagem.texto,
+                            "criador": user.real_name, "bairro": user.bairro, "selo": post.Postagem.selo,
+                            "categoria": post.Postagem.categoria,
+                            "data": post.Postagem.data.strftime("%Y-%m-%dT%H:%M:%S"),
+                            "comentarios": post.comentarios})
 
         return {"count": len(results), "post": results, "message": "success"}
 
@@ -483,26 +550,55 @@ def postagens():
 @token_required
 def recomendados():
     if request.method == 'GET':
-        postagens = Postagem.query.filter_by(selo=True).all()
+        postagens = db.session.query(Postagem, func.count(Comentario.id).label('comentarios')).outerjoin(Comentario).filter(Postagem.selo == True).group_by(Postagem.id)
+
         results = []
-        for post in postagens:
+        for post, comentarios in postagens:
             user = Usuario.query.get_or_404(post.criador)
-            results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria})
+            results.append({"id": post.id, "titulo": post.titulo, "texto": post.texto, "criador": user.real_name,
+                            "selo": post.selo, "categoria": post.categoria, "comentarios": comentarios})
 
         return {"count": len(results), "post": results, "message": "success"}
 
-@app.route('/postagens/<id_categoria>', methods=['GET'])
+@app.route('/postagens/categorias/<id_categoria>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def filtros(id_categoria):
-    postagens = Postagem.query.join(Categoria, id_categoria == Postagem.categoria)
-    print(postagens)
+    postagens = db.session.query(Postagem, func.count(Comentario.id).label('comentarios')).outerjoin(Comentario).filter(Postagem.categoria == id_categoria).group_by(Postagem.id)
+
     results = []
-    for post in postagens:
+    for post, comentarios in postagens:
         user = Usuario.query.get_or_404(post.criador)
-        results.append({"id": post.id, "titulo": post.titulo,"texto": post.texto,"criador": user.real_name,"selo":post.selo,"categoria":post.categoria, "data": post.data})
+        results.append(
+            {"id": post.id, "titulo": post.titulo, "texto": post.texto, "criador": user.real_name, "selo": post.selo,
+             "categoria": post.categoria, "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"), "comentarios": comentarios})
 
     return {"count": len(results), "post": results, "message": "success"}
+
+@app.route('/postagens/<id>', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def postagensId(id):
+    post = Postagem.query.filter_by(id=id).first()
+    #TODO: Criar uma estrutura com 'services' com funções para facilitar a vida (e evitar ter que fazer encode decode do json)
+    import json
+    comments = comentarios_postagem(post.id).response[0].decode('utf-8')
+    comments = json.loads(comments)
+    post_user = Usuario.query.get_or_404(post.criador)
+    result = {
+        "id": post.id,
+        "titulo": post.titulo,
+        "texto": post.texto,
+        "criador": {
+            "id": post_user.id,
+            "name": post_user.real_name
+        },
+        "selo":post.selo,
+        "categoria":post.categoria,
+        "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"),
+        "comentarios": comments['comments']
+    }
+    return result
 
 @app.route('/lista_postagens/<id>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -545,7 +641,7 @@ def comentarios():
                 "criador": comment.criador,
                 "postagem": comment.postagem,
                 "resposta": comment.resposta,
-                "data": comment.data
+                "data": comment.data.strftime("%Y-%m-%dT%H:%M:%S")
             } for comment in comments]
 
         return {"count": len(results), "comments": results, "message": "success"}
@@ -567,7 +663,7 @@ def comentarios_postagem(postagem_id):
                     "name": next(filter(lambda user: user.id == comment.criador, users)).real_name
                 },
             "resposta": comment.resposta,
-            "data": comment.data
+            "data": comment.data.strftime("%Y-%m-%dT%H:%M:%S")
         } for comment in comments]
         return {"user": 1,"count": len(results), "comments": results, "message": "success"}
 
