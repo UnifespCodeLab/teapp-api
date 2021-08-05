@@ -678,9 +678,9 @@ def esqueci_senha():
             email = data.get("email", None)
 
             if (username is None or username == ''):
-                row = Usuario.query.filter_by(email=email).one()
+                row = Usuario.query.filter_by(email=email).first()
             else:
-                row = Usuario.query.filter_by(user_name=username).one()
+                row = Usuario.query.filter_by(user_name=username).first()
 
             #Conecta e inicia o serviço de email
             smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
