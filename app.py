@@ -670,14 +670,17 @@ def comentarios_postagem(postagem_id):
 
 @app.route('/esqueci_senha', methods=['Get', 'Post'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-@token_required
 def esqueci_senha():
      if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            usuario = data["id"]
-            usuario = int(usuario)
-            row = Usuario.query.filter_by(id=usuario).one()
+            username = data.get("username", None)
+            email = data.get("email", None)
+
+            if (username is None or username == ''):
+                row = Usuario.query.filter_by(email=email).one()
+            else:
+                row = Usuario.query.filter_by(user_name=username).one()
 
             #Conecta e inicia o serviço de email
             smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
