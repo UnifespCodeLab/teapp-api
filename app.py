@@ -677,10 +677,15 @@ def esqueci_senha():
             username = data.get("username", None)
             email = data.get("email", None)
 
-            if (username is None or username == ''):
+            if username is None or username == '':
                 row = Usuario.query.filter_by(email=email).first()
+                if row is None:
+                    return f"O email \"{email}\" não existe"
             else:
                 row = Usuario.query.filter_by(user_name=username).first()
+                if row is None:
+                    return f"O nome de usuário \"{username}\" não existe"
+
 
             #Conecta e inicia o serviço de email
             smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
