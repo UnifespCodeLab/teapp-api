@@ -709,7 +709,7 @@ def esqueci_senha():
             msg.attach(body) 
             smtpObj.sendmail('codelabtesteesquecisenha@gmail.com',email,  msg.as_string())
 
-            return("A senha temporária foi enviada para o email " + row.email)
+            return("A senha temporária foi enviada para o email: " + row.email)
 
         else:
             return {"error": "A requisição não está no formato esperado"}
