@@ -9,6 +9,11 @@ import jwt
 import datetime
 from functools import wraps
 from sqlalchemy import func, sql
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+
+
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
@@ -695,10 +700,16 @@ def esqueci_senha():
             row.password = hash
             db.session.add(row)
             db.session.commit()
-            msg = "\n\nSua nova senha e " +hash
-            smtpObj.sendmail('codelabtesteesquecisenha@gmail.com',email,  msg )
+           
+            msg = MIMEMultipart()
+            msg['Subject'] = 'Recuperação de senha Ibeac'
+            msg['From'] = 'Ibeac-Senha'
+            msg['To'] = email
+            body = MIMEText("A sua nova senha é "+hash)
+            msg.attach(body) 
+            smtpObj.sendmail('codelabtesteesquecisenha@gmail.com',email,  msg.as_string())
 
-            return("A senha temporaria foi enviada para o email " + row.email)
+            return("A senha temporária foi enviada para o email " + row.email)
 
         else:
             return {"error": "A requisição não está no formato esperado"}
