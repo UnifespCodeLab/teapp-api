@@ -606,7 +606,7 @@ def postagensId(id):
 def lista_postagens(id):
     if request.method == 'GET':
         try :
-            postagens = Postagem.query.all().order_by(Postagem.data.desc())
+            postagens = Postagem.query.order_by(Postagem.data.desc()).all()
             user = Usuario.query.get_or_404(id)
             results = []
             for post in postagens:
@@ -634,7 +634,7 @@ def comentarios():
             return {"error": "A requisição não está no formato esperado"}
 
     elif request.method == 'GET':
-        comments = Comentario.query.all().order_by(Comentario.data.desc())
+        comments = Comentario.query.order_by(Comentario.data.desc()).all()
         results = [
             {
                 "texto": comment.texto,
@@ -651,7 +651,7 @@ def comentarios():
 @token_required
 def comentarios_postagem(postagem_id):
     if request.method == 'GET':
-        comments = Comentario.query.filter_by(postagem=postagem_id).all().order_by(Comentario.data.desc())
+        comments = Comentario.query.filter_by(postagem=postagem_id).order_by(Comentario.data.desc()).all()
         users_id = [ comment.criador for comment in comments ]
         users = Usuario.query.filter(Usuario.id.in_(users_id)).all()
         results = [
