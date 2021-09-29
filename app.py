@@ -634,7 +634,7 @@ def comentarios():
             return {"error": "A requisição não está no formato esperado"}
 
     elif request.method == 'GET':
-        comments = Comentario.query.all()
+        comments = Comentario.query.all().order_by(Comentario.data.desc())
         results = [
             {
                 "texto": comment.texto,
@@ -651,7 +651,7 @@ def comentarios():
 @token_required
 def comentarios_postagem(postagem_id):
     if request.method == 'GET':
-        comments = Comentario.query.filter_by(postagem=postagem_id).all()
+        comments = Comentario.query.filter_by(postagem=postagem_id).all().order_by(Comentario.data.desc())
         users_id = [ comment.criador for comment in comments ]
         users = Usuario.query.filter(Usuario.id.in_(users_id)).all()
         results = [
