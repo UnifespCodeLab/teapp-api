@@ -697,6 +697,7 @@ def esqueci_senha():
             res = smtpObj.starttls()
 
             #Criei essa conta para mandar o email
+            # https://stackoverflow.com/questions/54657006/smtpauthenticationerror-5-7-14-please-log-n5-7-14-in-via-your-web-browser/56809076#56809076
             smtpObj.login('codelabtesteesquecisenha@gmail.com', '44D6DDAAC9C660F72D6490D7CC44731BEA7C236A9241B387D3E9AF0C66B30D49')
 
             #Gera uma hash que servirá como senha temporaria
