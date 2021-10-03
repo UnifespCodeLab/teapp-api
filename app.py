@@ -701,7 +701,7 @@ def esqueci_senha():
             smtpObj.login('codelabtesteesquecisenha@gmail.com', '44D6DDAAC9C660F72D6490D7CC44731BEA7C236A9241B387D3E9AF0C66B30D49')
 
             #Gera uma hash que servirá como senha temporaria
-            hash = str(random.getrandbits(128))
+            hash = str(random.getrandbits(128))[:11]
             email =  row.email
             row.password = hash
             db.session.add(row)
