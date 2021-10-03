@@ -523,7 +523,7 @@ def postagens():
         else:
             return {"error": "A requisição não está no formato esperado"}
     elif request.method == 'GET':
-        postagens = Postagem.query.outerjoin(Comentario).add_columns(func.count(Comentario.id).label('comentarios')).group_by(Postagem.id)
+        postagens = Postagem.query.outerjoin(Comentario).add_columns(func.count(Comentario.id).label('comentarios')).group_by(Postagem.id).order_by(Postagem.data.desc())
 
         # postagensWithCriador = Postagem.query.join(Usuario, Postagem.criador == Usuario.id, isouter=True).outerjoin(
         #     Comentario).add_columns(Usuario.id, Usuario.real_name, Usuario.bairro, func.count(Comentario.id).label('comentarios')).group_by(Postagem.id, Usuario.id)
@@ -533,7 +533,7 @@ def postagens():
         categoria = request.args.get('categoria', None)
 
         if categoria is not None:
-            postagensWithCriador = postagens.filter(Postagem.categoria.in_(map(int, categoria.split(','))))
+            postagensWithCriador = postagens.filter(Postagem.categoria.in_(map(int, categoria.split(',')))).order_by(Postagem.data.desc())
 
         # if bairro is not None:
         #     postagensWithCriador = postagens.filter(Usuario.bairro.in_(map(int, bairro.split(','))))
@@ -555,7 +555,7 @@ def postagens():
 @token_required
 def recomendados():
     if request.method == 'GET':
-        postagens = db.session.query(Postagem, func.count(Comentario.id).label('comentarios')).outerjoin(Comentario).filter(Postagem.selo == True).group_by(Postagem.id)
+        postagens = db.session.query(Postagem, func.count(Comentario.id).label('comentarios')).outerjoin(Comentario).filter(Postagem.selo == True).group_by(Postagem.id).order_by(Postagem.data.desc())
 
         results = []
         for post, comentarios in postagens:
@@ -569,7 +569,7 @@ def recomendados():
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def filtros(id_categoria):
-    postagens = db.session.query(Postagem, func.count(Comentario.id).label('comentarios')).outerjoin(Comentario).filter(Postagem.categoria == id_categoria).group_by(Postagem.id)
+    postagens = db.session.query(Postagem, func.count(Comentario.id).label('comentarios')).outerjoin(Comentario).filter(Postagem.categoria == id_categoria).group_by(Postagem.id).order_by(Postagem.data.desc())
 
     results = []
     for post, comentarios in postagens:
@@ -611,7 +611,7 @@ def postagensId(id):
 def lista_postagens(id):
     if request.method == 'GET':
         try :
-            postagens = Postagem.query.all()
+            postagens = Postagem.query.order_by(Postagem.data.desc()).all()
             user = Usuario.query.get_or_404(id)
             results = []
             for post in postagens:
@@ -639,7 +639,7 @@ def comentarios():
             return {"error": "A requisição não está no formato esperado"}
 
     elif request.method == 'GET':
-        comments = Comentario.query.all()
+        comments = Comentario.query.order_by(Comentario.data.desc()).all()
         results = [
             {
                 "texto": comment.texto,
@@ -656,7 +656,7 @@ def comentarios():
 @token_required
 def comentarios_postagem(postagem_id):
     if request.method == 'GET':
-        comments = Comentario.query.filter_by(postagem=postagem_id).all()
+        comments = Comentario.query.filter_by(postagem=postagem_id).order_by(Comentario.data.desc()).all()
         users_id = [ comment.criador for comment in comments ]
         users = Usuario.query.filter(Usuario.id.in_(users_id)).all()
         results = [
@@ -682,10 +682,15 @@ def esqueci_senha():
             username = data.get("username", None)
             email = data.get("email", None)
 
-            if (username is None or username == ''):
+            if username is None or username == '':
                 row = Usuario.query.filter_by(email=email).first()
+                if row is None:
+                    return f"O email \"{email}\" não existe"
             else:
                 row = Usuario.query.filter_by(user_name=username).first()
+                if row is None:
+                    return f"O nome de usuário \"{username}\" não existe"
+
 
             #Conecta e inicia o serviço de email
             smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
