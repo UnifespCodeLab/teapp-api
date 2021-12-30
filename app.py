@@ -543,7 +543,8 @@ def postagens():
         for post in postagens:
             user = Usuario.query.get_or_404(post.Postagem.criador)
             results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo, "texto": post.Postagem.texto,
-                            "criador": user.real_name, "bairro": user.bairro, "selo": post.Postagem.selo,
+                            "criador": user.real_name, "id_criador": user.id,
+                            "bairro": user.bairro, "selo": post.Postagem.selo,
                             "categoria": post.Postagem.categoria,
                             "data": post.Postagem.data.strftime("%Y-%m-%dT%H:%M:%S"),
                             "comentarios": post.comentarios})
@@ -575,7 +576,7 @@ def filtros(id_categoria):
     for post, comentarios in postagens:
         user = Usuario.query.get_or_404(post.criador)
         results.append(
-            {"id": post.id, "titulo": post.titulo, "texto": post.texto, "criador": user.real_name, "selo": post.selo,
+            {"id": post.id, "titulo": post.titulo, "texto": post.texto, "criador": user.real_name, "id_criador": user.id, "selo": post.selo,
              "categoria": post.categoria, "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"), "comentarios": comentarios})
 
     return {"count": len(results), "post": results, "message": "success"}
