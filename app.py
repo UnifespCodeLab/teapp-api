@@ -662,6 +662,7 @@ def comentarios_postagem(postagem_id):
         users = Usuario.query.filter(Usuario.id.in_(users_id)).all()
         results = [
         {
+            "id": comment.id,
             "texto": comment.texto,
             "criador":
                 {
