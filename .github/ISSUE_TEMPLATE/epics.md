@@ -1,5 +1,5 @@
 ---
-name: Feature
+name: Epic
 about: Modelo de Issue para especificação de novas features
 title: "Nome do Épico"
 labels: 'type: epic, type: specification'
