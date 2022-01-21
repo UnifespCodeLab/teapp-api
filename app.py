@@ -41,6 +41,7 @@ class Usuario(db.Model):
     data_registro = db.Column(db.DateTime, nullable=True)
     bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
+    isActive = db.Column(db.Boolean, default=True, nullable=False)
 
     def __init__(self, real_name, password, user_name, user_type, bairro):
         import datetime
@@ -336,8 +337,12 @@ def users():
         users = Usuario.query.all()
         results = [
             {
+                "id": user.id,
                 "user_name": user.user_name,
-                "email": user.email
+                "nascimento": user.nascimento,
+                "email": user.email,
+                "privilegio": user.user_type,
+                "ativo": user.is_active
             } for user in users]
 
         return {"count": len(results), "users": results, "message": "success"}
@@ -490,10 +495,38 @@ def handle_user(id):
         return {"message": f"Dados de {user.user_name} atualizados"}
 
     elif request.method == 'DELETE':
-        db.session.delete(user)
+        db.session.query(user)
         db.session.commit()
 
         return {"message": f"Dados de {user.user_name} removidos"}
+
+@app.route('/inactivate_users/<id>', methods=['POST'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def inactivate_user(id):
+    user = Usuario.query.get_or_404(id)
+    if request.method == 'POST':
+        if request.is_json:
+            user.isActive = False
+
+            db.session.add(user)
+            db.session.commit()
+        return {"message": "success"}
+    
+    return {"message": "success"}
+
+@app.route('/activate_users/<id>', methods=['POST'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def inactivate_user(id):
+    user = Usuario.query.get_or_404(id)
+    if request.method == 'POST':
+        if request.is_json:
+            user.isActive = True
+
+            db.session.add(user)
+            db.session.commit()
+        return {"message": "success"}
 
 @app.route('/selo/<id>', methods=['PUT'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
