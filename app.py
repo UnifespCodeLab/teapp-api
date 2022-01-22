@@ -357,7 +357,7 @@ def login():
             data = request.get_json()
             user = Usuario.query.filter_by(user_name=data['username'], is_active=True).first()
             if user is None:
-                user = Usuario.query.filter_by(email=data['username']).first()
+                user = Usuario.query.filter_by(email=data['username'], is_active=True).first()
             if user:
                 if user.password == data['password']:
                     expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
