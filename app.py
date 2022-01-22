@@ -41,7 +41,7 @@ class Usuario(db.Model):
     data_registro = db.Column(db.DateTime, nullable=True)
     bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
-    isActive = db.Column(db.Boolean, default=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     def __init__(self, real_name, password, user_name, user_type, bairro):
         import datetime
@@ -334,7 +334,7 @@ def users():
             return {"error": "A requisição não foi feita no formato esperado"}
 
     elif request.method == 'GET':
-        users = Usuario.query.all()
+        users = Usuario.query.order_by("id").all()
         results = [
             {
                 "id": user.id,
@@ -342,7 +342,7 @@ def users():
                 "nascimento": user.nascimento,
                 "email": user.email,
                 "privilegio": user.user_type,
-                "ativo": user.is_active
+                "is_active": user.is_active
             } for user in users]
 
         return {"count": len(results), "users": results, "message": "success"}
@@ -355,7 +355,7 @@ def login():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            user = Usuario.query.filter_by(user_name=data['username']).first()
+            user = Usuario.query.filter_by(user_name=data['username'], is_active=True).first()
             if user is None:
                 user = Usuario.query.filter_by(email=data['username']).first()
             if user:
@@ -507,7 +507,7 @@ def inactivate_user(id):
     user = Usuario.query.get_or_404(id)
     if request.method == 'POST':
         if request.is_json:
-            user.isActive = False
+            user.is_active = False
 
             db.session.add(user)
             db.session.commit()
@@ -522,7 +522,7 @@ def activate_user(id):
     user = Usuario.query.get_or_404(id)
     if request.method == 'POST':
         if request.is_json:
-            user.isActive = True
+            user.is_active = True
 
             db.session.add(user)
             db.session.commit()
