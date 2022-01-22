@@ -518,7 +518,7 @@ def inactivate_user(id):
 @app.route('/activate_users/<id>', methods=['POST'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
-def inactivate_user(id):
+def activate_user(id):
     user = Usuario.query.get_or_404(id)
     if request.method == 'POST':
         if request.is_json:
@@ -527,6 +527,7 @@ def inactivate_user(id):
             db.session.add(user)
             db.session.commit()
         return {"message": "success"}
+    return {"message": "failure"}
 
 @app.route('/selo/<id>', methods=['PUT'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
