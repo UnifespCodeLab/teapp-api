@@ -661,8 +661,8 @@ def comentarios():
             usuario = Usuario.query.filter_by(user_name=data['username']).first()
             privilegio_adm = Privilegio.query.filter_by(id='Admin').first()
 
-            if not usuario:
-                return {"error": "Usuário inexistente"}
+            if not usuario or not comentario:
+                return {"error": "Informações de usuário ou comentário inválidas"}
 
             if usuario.id == comentario.id or usuario.user_type == privilegio_adm.id:
                 db.session.delete(comentario)
