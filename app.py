@@ -507,8 +507,6 @@ def inactivate_user(id):
             db.session.add(user)
             db.session.commit()
         return {"message": "success"}
-    
-    return {"message": "success"}
 
 @app.route('/activate_users/<id>', methods=['POST'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -522,7 +520,6 @@ def activate_user(id):
             db.session.add(user)
             db.session.commit()
         return {"message": "success"}
-    return {"message": "failure"}
 
 @app.route('/selo/<id>', methods=['PUT'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
