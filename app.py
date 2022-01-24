@@ -458,11 +458,13 @@ def categorias():
             return {"error": "A requisição não foi feita no formato esperado"}
 
     elif request.method == 'GET':
-        categorias = Categoria.query.all()
+        categorias = Categoria.query.outerjoin(Postagem).add_columns(func.count(Postagem.id).label('postagens')).group_by(Categoria.id).all()
+
         results = [
             {
-                "nome": categoria.nome,
-                "id": categoria.id
+                "nome": categoria.Categoria.nome,
+                "id": categoria.Categoria.id,
+                "postagens": categoria.postagens
             } for categoria in categorias]
 
         return {"count": len(results), "Categorias": results, "message": "success"}
