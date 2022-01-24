@@ -152,6 +152,14 @@ class Form_Socioeconomico(db.Model):
         self.pessoa_amamenta = pessoa_amamenta
         self.preenchido = True
 
+def get_authorized_user(request):
+    token = request.headers['Authorization'].split("Bearer ")[1]
+    payload = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-api-local'),
+                      algorithms=["HS256"],
+                      options={"require": ["exp", "sub", "iss", "aud"], "verify_aud": False, "verify_iat": False,
+                               "verify_nbf": False})
+    return payload['sub']
+
 def token_required(f):
    @wraps(f)
    def decorator(*args, **kwargs):
@@ -195,6 +203,16 @@ def toDict(user: Usuario):
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
 	return "This API Works! [" + os.environ.get("ENV", "DEV") + "]"
+
+@app.route('/me', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def me():
+    id = get_authorized_user(request)
+
+    user = Usuario.query.get(id)
+
+    return toDict(user)
 
 @app.route('/users/<id>/notificacoes_conf', methods=['PUT', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
