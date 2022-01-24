@@ -456,7 +456,7 @@ def categorias():
 
         return {"count": len(results), "Categorias": results, "message": "success"}
 
-@app.route('/users/<id>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/users/<id>', methods=['GET', 'PUT'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def handle_user(id):
@@ -494,11 +494,6 @@ def handle_user(id):
 
         return {"message": f"Dados de {user.user_name} atualizados"}
 
-    elif request.method == 'DELETE':
-        db.session.query(user)
-        db.session.commit()
-
-        return {"message": f"Dados de {user.user_name} removidos"}
 
 @app.route('/inactivate_users/<id>', methods=['POST'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
