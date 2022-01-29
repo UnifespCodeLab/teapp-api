@@ -631,8 +631,8 @@ def filtros(id_categoria):
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def postagensId(id):
-    post = Postagem.query.filter_by(id=id).first()
     if request.method == 'GET':
+        post = Postagem.query.filter_by(id=id).first()
         #TODO: Criar uma estrutura com 'services' com funções para facilitar a vida (e evitar ter que fazer encode decode do json)
         import json
         comments = comentarios_postagem(post.id).response[0].decode('utf-8')
@@ -652,8 +652,11 @@ def postagensId(id):
             "comentarios": comments['comments']
         }
         return result
-    elif request.method == 'POST':
-        return post
+    elif request.method == 'DELETE':
+        post = Postagem.query.filter_by(id=id).first()
+        db.session.delete(post)
+        db.session.commit()
+        return {"message": "Postagem removida com sucesso"}
 
 @app.route('/lista_postagens/<id>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
