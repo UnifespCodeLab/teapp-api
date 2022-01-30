@@ -11,6 +11,7 @@ from functools import wraps
 from sqlalchemy import func, sql
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from sqlalchemy.orm import relationship
 
 
 
@@ -118,7 +119,7 @@ class Comentario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     texto = db.Column(db.String(400), nullable=False)
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
+    postagem = db.Column(db.Integer, db.ForeignKey('postagens.id', ondelete="cascade"), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
     data = db.Column(db.DateTime(timezone=True), default=datetime.datetime.utcnow)
 
@@ -654,6 +655,9 @@ def postagensId(id):
         return result
     elif request.method == 'DELETE':
         post = Postagem.query.filter_by(id=id).first()
+        comments = Comentario.query.filter_by(postagem=id).order_by(Comentario.data.desc()).all()
+        for comment in comments:
+            db.session.delete(comment)
         db.session.delete(post)
         db.session.commit()
         return {"message": "Postagem removida com sucesso"}
