@@ -627,30 +627,36 @@ def filtros(id_categoria):
 
     return {"count": len(results), "post": results, "message": "success"}
 
-@app.route('/postagens/<id>', methods=['GET'])
+@app.route('/postagens/<id>', methods=['GET','DELETE'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def postagensId(id):
-    post = Postagem.query.filter_by(id=id).first()
-    #TODO: Criar uma estrutura com 'services' com funções para facilitar a vida (e evitar ter que fazer encode decode do json)
-    import json
-    comments = comentarios_postagem(post.id).response[0].decode('utf-8')
-    comments = json.loads(comments)
-    post_user = Usuario.query.get_or_404(post.criador)
-    result = {
-        "id": post.id,
-        "titulo": post.titulo,
-        "texto": post.texto,
-        "criador": {
-            "id": post_user.id,
-            "name": post_user.real_name
-        },
-        "selo":post.selo,
-        "categoria":post.categoria,
-        "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"),
-        "comentarios": comments['comments']
-    }
-    return result
+    if request.method == 'GET':
+        post = Postagem.query.filter_by(id=id).first()
+        #TODO: Criar uma estrutura com 'services' com funções para facilitar a vida (e evitar ter que fazer encode decode do json)
+        import json
+        comments = comentarios_postagem(post.id).response[0].decode('utf-8')
+        comments = json.loads(comments)
+        post_user = Usuario.query.get_or_404(post.criador)
+        result = {
+            "id": post.id,
+            "titulo": post.titulo,
+            "texto": post.texto,
+            "criador": {
+                "id": post_user.id,
+                "name": post_user.real_name
+            },
+            "selo":post.selo,
+            "categoria":post.categoria,
+            "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"),
+            "comentarios": comments['comments']
+        }
+        return result
+    elif request.method == 'DELETE':
+        post = Postagem.query.filter_by(id=id).first()
+        db.session.delete(post)
+        db.session.commit()
+        return {"message": "Postagem removida com sucesso"}
 
 @app.route('/lista_postagens/<id>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
