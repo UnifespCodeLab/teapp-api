@@ -99,7 +99,6 @@ class Postagem(db.Model):
     categoria = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
     selo = db.Column(db.Boolean, default=False, nullable=False)
     data = db.Column(db.DateTime(timezone=True), default=datetime.datetime.utcnow)
-    # coments = relationship("comentarios", cascade="all, delete")
 
     def __init__(self, titulo, texto, criador, categoria):
         self.titulo = titulo
