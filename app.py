@@ -712,7 +712,8 @@ def comentarios():
         if request.is_json:
             data = request.get_json()
             comentario = Comentario.query.filter_by(id=data['comentario_id']).first()
-            usuario = Usuario.query.filter_by(user_name=data['username']).first()
+            id = get_authorized_user(request)
+            usuario = Usuario.query.get(id)
             privilegio_adm = Privilegio.query.filter_by(user_type='Admin').first()
 
             if not usuario or not comentario:
