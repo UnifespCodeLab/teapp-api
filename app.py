@@ -11,6 +11,7 @@ from functools import wraps
 from sqlalchemy import func, sql
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from sqlalchemy.orm import relationship
 
 
 
@@ -41,6 +42,7 @@ class Usuario(db.Model):
     data_registro = db.Column(db.DateTime, nullable=True)
     bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     def __init__(self, real_name, password, user_name, user_type, bairro):
         import datetime
@@ -117,7 +119,7 @@ class Comentario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     texto = db.Column(db.String(400), nullable=False)
     criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    postagem = db.Column(db.Integer, db.ForeignKey('postagens.id'), nullable=False)
+    postagem = db.Column(db.Integer, db.ForeignKey('postagens.id', ondelete="cascade"), nullable=False)
     resposta = db.Column(db.Integer, db.ForeignKey('comentarios.id'), nullable=True)
     data = db.Column(db.DateTime(timezone=True), default=datetime.datetime.utcnow)
 
@@ -151,6 +153,14 @@ class Form_Socioeconomico(db.Model):
         self.qtd_gestantes = qtd_gestantes
         self.pessoa_amamenta = pessoa_amamenta
         self.preenchido = True
+
+def get_authorized_user(request):
+    token = request.headers['Authorization'].split("Bearer ")[1]
+    payload = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-api-local'),
+                      algorithms=["HS256"],
+                      options={"require": ["exp", "sub", "iss", "aud"], "verify_aud": False, "verify_iat": False,
+                               "verify_nbf": False})
+    return payload['sub']
 
 def token_required(f):
    @wraps(f)
@@ -195,6 +205,16 @@ def toDict(user: Usuario):
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def hello():
 	return "This API Works! [" + os.environ.get("ENV", "DEV") + "]"
+
+@app.route('/me', methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def me():
+    id = get_authorized_user(request)
+
+    user = Usuario.query.get(id)
+
+    return toDict(user)
 
 @app.route('/users/<id>/notificacoes_conf', methods=['PUT', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -333,11 +353,15 @@ def users():
             return {"error": "A requisição não foi feita no formato esperado"}
 
     elif request.method == 'GET':
-        users = Usuario.query.all()
+        users = Usuario.query.order_by("id").all()
         results = [
             {
+                "id": user.id,
                 "user_name": user.user_name,
-                "email": user.email
+                "nascimento": user.nascimento,
+                "email": user.email,
+                "privilegio": user.user_type,
+                "is_active": user.is_active
             } for user in users]
 
         return {"count": len(results), "users": results, "message": "success"}
@@ -350,9 +374,9 @@ def login():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            user = Usuario.query.filter_by(user_name=data['username']).first()
+            user = Usuario.query.filter_by(user_name=data['username'], is_active=True).first()
             if user is None:
-                user = Usuario.query.filter_by(email=data['username']).first()
+                user = Usuario.query.filter_by(email=data['username'], is_active=True).first()
             if user:
                 if user.password == data['password']:
                     expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
@@ -451,7 +475,7 @@ def categorias():
 
         return {"count": len(results), "Categorias": results, "message": "success"}
 
-@app.route('/users/<id>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/users/<id>', methods=['GET', 'PUT'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def handle_user(id):
@@ -489,11 +513,32 @@ def handle_user(id):
 
         return {"message": f"Dados de {user.user_name} atualizados"}
 
-    elif request.method == 'DELETE':
-        db.session.delete(user)
-        db.session.commit()
 
-        return {"message": f"Dados de {user.user_name} removidos"}
+@app.route('/inactivate_users/<id>', methods=['POST'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def inactivate_user(id):
+    user = Usuario.query.get_or_404(id)
+    if request.method == 'POST':
+        if request.is_json:
+            user.is_active = False
+
+            db.session.add(user)
+            db.session.commit()
+        return {"message": "success"}
+
+@app.route('/activate_users/<id>', methods=['POST'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+@token_required
+def activate_user(id):
+    user = Usuario.query.get_or_404(id)
+    if request.method == 'POST':
+        if request.is_json:
+            user.is_active = True
+
+            db.session.add(user)
+            db.session.commit()
+        return {"message": "success"}
 
 @app.route('/selo/<id>', methods=['PUT'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -583,30 +628,39 @@ def filtros(id_categoria):
 
     return {"count": len(results), "post": results, "message": "success"}
 
-@app.route('/postagens/<id>', methods=['GET'])
+@app.route('/postagens/<id>', methods=['GET','DELETE'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def postagensId(id):
-    post = Postagem.query.filter_by(id=id).first()
-    #TODO: Criar uma estrutura com 'services' com funções para facilitar a vida (e evitar ter que fazer encode decode do json)
-    import json
-    comments = comentarios_postagem(post.id).response[0].decode('utf-8')
-    comments = json.loads(comments)
-    post_user = Usuario.query.get_or_404(post.criador)
-    result = {
-        "id": post.id,
-        "titulo": post.titulo,
-        "texto": post.texto,
-        "criador": {
-            "id": post_user.id,
-            "name": post_user.real_name
-        },
-        "selo":post.selo,
-        "categoria":post.categoria,
-        "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"),
-        "comentarios": comments['comments']
-    }
-    return result
+    if request.method == 'GET':
+        post = Postagem.query.filter_by(id=id).first()
+        #TODO: Criar uma estrutura com 'services' com funções para facilitar a vida (e evitar ter que fazer encode decode do json)
+        import json
+        comments = comentarios_postagem(post.id).response[0].decode('utf-8')
+        comments = json.loads(comments)
+        post_user = Usuario.query.get_or_404(post.criador)
+        result = {
+            "id": post.id,
+            "titulo": post.titulo,
+            "texto": post.texto,
+            "criador": {
+                "id": post_user.id,
+                "name": post_user.real_name
+            },
+            "selo":post.selo,
+            "categoria":post.categoria,
+            "data": post.data.strftime("%Y-%m-%dT%H:%M:%S"),
+            "comentarios": comments['comments']
+        }
+        return result
+    elif request.method == 'DELETE':
+        post = Postagem.query.filter_by(id=id).first()
+        comments = Comentario.query.filter_by(postagem=id).order_by(Comentario.data.desc()).all()
+        for comment in comments:
+            db.session.delete(comment)
+        db.session.delete(post)
+        db.session.commit()
+        return {"message": "Postagem removida com sucesso"}
 
 @app.route('/lista_postagens/<id>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
