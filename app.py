@@ -679,7 +679,7 @@ def lista_postagens(id):
         except:
             return {"error": 404, "message": "Usuário não encontrado"}
 
-@app.route('/comentarios', methods=['POST', 'GET'])
+@app.route('/comentarios', methods=['POST', 'GET', 'DELETE'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
 def comentarios():
@@ -707,6 +707,28 @@ def comentarios():
             } for comment in comments]
 
         return {"count": len(results), "comments": results, "message": "success"}
+
+    elif request.method == 'DELETE':
+        if request.is_json:
+            data = request.get_json()
+            comentario = Comentario.query.filter_by(id=data['comentario_id']).first()
+            id = get_authorized_user(request)
+            usuario = Usuario.query.get(id)
+            privilegio_adm = Privilegio.query.filter_by(user_type='Admin').first()
+
+            if not usuario or not comentario:
+                return {"error": "Informações de usuário ou comentário inválidas"}
+
+            if usuario.id == comentario.criador or usuario.user_type == privilegio_adm.id:
+                db.session.delete(comentario)
+                db.session.commit()
+                return {"message": "Comentário removido com sucesso"}
+
+            return {"error": "O usuário não tem autorização para essa ação"}
+        
+        else:
+            return {"error": "A requisição não está no formato esperado"}
+
 
 @app.route('/comentarios/<postagem_id>', methods=['GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
