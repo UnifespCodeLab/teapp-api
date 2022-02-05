@@ -715,11 +715,12 @@ def comentarios():
             id = get_authorized_user(request)
             usuario = Usuario.query.get(id)
             privilegio_adm = Privilegio.query.filter_by(user_type='Admin').first()
+            privilegio_mod = Privilegio.query.filter_by(user_type='Moderador').first()
 
             if not usuario or not comentario:
                 return {"error": "Informações de usuário ou comentário inválidas"}
 
-            if usuario.id == comentario.criador or usuario.user_type == privilegio_adm.id:
+            if usuario.id == comentario.criador or usuario.user_type == privilegio_adm.id or usuario.user_type == privilegio_mod.id:
                 db.session.delete(comentario)
                 db.session.commit()
                 return {"message": "Comentário removido com sucesso"}
