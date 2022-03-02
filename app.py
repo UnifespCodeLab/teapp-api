@@ -1,3 +1,4 @@
+from email.policy import default
 import os
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
@@ -8,7 +9,7 @@ import random
 import jwt
 import datetime
 from functools import wraps
-from sqlalchemy import func, sql
+from sqlalchemy import func, sql, event
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from sqlalchemy.orm import relationship
@@ -33,26 +34,41 @@ class Usuario(db.Model):
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)
     verificado = db.Column(db.Boolean, default=False, nullable=False)
-    sexo = db.Column(db.String(1), nullable=True)
-    nascimento = db.Column(db.String(20), nullable=True)
-    cor = db.Column(db.String(10), nullable=True)
-    telefone = db.Column(db.String(20), nullable=True)
-    rua = db.Column(db.String(100), nullable=True)
-    numero_casa = db.Column(db.Integer, nullable=True)
     data_registro = db.Column(db.DateTime, nullable=True)
-    bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
-    def __init__(self, real_name, password, user_name, user_type, bairro):
-        import datetime
+    def __init__(self, real_name, password, user_name, user_type):
         self.real_name = real_name
         self.password = password
-        self.verificado = False
         self.user_name = user_name
         self.user_type = user_type
         self.data_registro = datetime.datetime.now()
-        self.bairro = bairro
+
+@event.listens_for(Usuario, 'after_insert')
+def receive_after_insert(mapper, connection, target):
+    print(target.id)
+    new_comp = Complemento_de_Dados(target.id)
+    db.session.add(new_comp)
+    db.session.commit()
+
+class Complemento_de_Dados(db.Model):
+    __tablename__ = 'complemento_de_dados'
+    id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete="cascade"), primary_key=True)
+    sexo = db.Column(db.String(1), nullable=True)
+    nascimento = db.Column(db.String(20), nullable=True)
+    universidade = db.Column(db.String(80), nullable=True)
+    campus = db.Column(db.String(80), nullable=True)
+    setor = db.Column(db.String(80), nullable=True)
+    deficiencia = db.Column(db.String(80), nullable=True)
+    parente_com_tea = db.Column(db.String(80), nullable=True)
+    freq_convivio_tea = db.Column(db.String(80), nullable=True)
+    qtd_alunos_tea = db.Column(db.Integer, nullable=True)
+    tempo_trabalho_tea = db.Column(db.Integer, nullable=True)
+    qtd_pacientes_tea_ano = db.Column(db.Integer, nullable=True)
+
+    def __init__(self, id):
+        self.id = id
 
 class Notificacoes_Conf(db.Model):
     __tablename__ = 'notificacoes_conf'
@@ -497,17 +513,24 @@ def handle_user(id):
 
     elif request.method == 'PUT':
         data = request.get_json()
+        user_data = Complemento_de_Dados.query.get_or_404(id)
         #user.email = data['email']
         #user.real_name = data['real_name']
         #user.password = data['password']
         user.verificado = True
-        user.sexo = data['sexo']
-        user.nascimento = data['nascimento']
-        user.cor = data['cor']
-        user.telefone = data['telefone']
-        user.rua = data['rua']
-        user.numero_casa = data['numero_casa']
+        user_data.sexo = data['sexo']
+        user_data.nascimento = data['nascimento']
+        user_data.universidade = data['universidade']
+        user_data.campus = data['campus']
+        user_data.setor = data['setor']
+        user_data.deficiencia = data['deficiencia']
+        user_data.parente_com_tea = data['parente_com_tea']
+        user_data.freq_convivio_tea = data['freq_convivio_tea']
+        user_data.qtd_alunos_tea = data['qtd_alunos_tea']
+        user_data.tempo_trabalho_tea = data['tempo_trabalho_tea']
+        user_data.qtd_pacientes_tea_ano = data['qtd_pacientes_tea_ano']
 
+        db.session.add(user_data)
         db.session.add(user)
         db.session.commit()
 
