@@ -133,31 +133,6 @@ class Comentario(db.Model):
         self.postagem = postagem
         self.resposta = resposta
 
-class Form_Socioeconomico(db.Model):
-    __tablename__ = 'form_socioeconomico'
-    id = db.Column(db.Integer, primary_key=True)
-    nome_rep_familia = db.Column(db.String(100), nullable=False)
-    pessoa = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    qtd_pessoas_familia = db.Column(db.Integer, nullable=False)
-    qtd_criancas = db.Column(db.Integer, nullable=False)
-    gestante = db.Column(db.Boolean, nullable=False)
-    qtd_amamentando = db.Column(db.Integer, nullable=False)
-    qtd_criancas_deficiencia = db.Column(db.Integer, nullable=False)
-    preenchido = db.Column(db.Boolean, nullable=False, default="False")
-    pessoa_amamenta = db.Column(db.Boolean, nullable=False, default="False")
-    qtd_gestantes = db.Column(db.Integer, nullable=False)
-    def __init__(self, nome_rep_familia, pessoa, qtd_pessoas_familia, qtd_criancas, gestante, qtd_amamentando, qtd_criancas_deficiencia, qtd_gestantes, pessoa_amamenta):
-        self.nome_rep_familia = nome_rep_familia
-        self.pessoa = pessoa
-        self.qtd_pessoas_familia = qtd_pessoas_familia
-        self.qtd_criancas = qtd_criancas
-        self.gestante = gestante
-        self.qtd_amamentando = qtd_amamentando
-        self.qtd_criancas_deficiencia = qtd_criancas_deficiencia
-        self.qtd_gestantes = qtd_gestantes
-        self.pessoa_amamenta = pessoa_amamenta
-        self.preenchido = True
-
 def get_authorized_user(request):
     token = request.headers['Authorization'].split("Bearer ")[1]
     payload = jwt.decode(token, app.config['SECRET_KEY'], issuer=os.environ.get('ME', 'plasmedis-api-local'),
@@ -247,92 +222,6 @@ def handle_user_notificacao(id):
         db.session.add(user_not)
         db.session.commit()
         return {"message": f"Configurações de notificação atualizadas"}
-
-
-
-@app.route('/form_socio/<id>', methods=['POST', 'GET'])
-@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-@token_required
-def form_socio(id):
-    if request.method == 'POST':
-        if request.is_json:
-            data = request.get_json()
-            new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=data['pessoa'], qtd_pessoas_familia=data['qtd_pessoas_familia'],
-            pessoa_amamenta=data['pessoa_amamenta'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], qtd_gestantes=data['qtd_gestantes'])
-            db.session.add(new_form)
-            db.session.commit()
-
-            return {"message": f"Formulário enviado!"}
-        else:
-            return {"error": "O envio não foi feita no formato esperado"}
-
-    elif request.method == 'GET':
-        forms = Form_Socioeconomico.query.filter_by(pessoa=id).all()
-        results = []
-        for form in forms:
-            if form.preenchido:
-                results.append({
-                    "preenchido": form.preenchido,
-                    "nome_rep": form.nome_rep_familia,
-                    "qtd_pessoas": form.qtd_pessoas_familia,
-                    "qtd_criancas": form.qtd_criancas,
-                    "gestante": form.gestante,
-                    "qtd_amamentando": form.qtd_amamentando,
-                    "qtd_criancas_deficiencia": form.qtd_criancas_deficiencia,
-                    "pessoa_amamenta": form.pessoa_amamenta,
-                    "qtd_gestantes": form.qtd_gestantes
-                })
-
-        return {"count": len(results), "users": results}
-
-@app.route('/form_socio_by_user_id/<user_id>', methods=['POST', 'GET'])
-@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-@token_required
-def form_socio_get_by_user(user_id):
-        if request.method == 'POST':
-            if request.is_json:
-                data = request.get_json()
-                form = Form_Socioeconomico.query.filter_by(pessoa=user_id).first()
-                if form is None:
-                    new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=user_id, qtd_pessoas_familia=data['qtd_pessoas_familia'],
-                    pessoa_amamenta=data['pessoa_amamenta'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], qtd_gestantes=data['qtd_gestantes'])
-                    db.session.add(new_form)
-                    db.session.commit()
-                    return {"status":"1000", "message":"created"}
-
-                else:
-                    form.nome_rep_familia = data['nome_rep_familia']
-                    form.qtd_pessoas_familia = data['qtd_pessoas_familia']
-                    form.pessoa_amamenta = data['pessoa_amamenta']
-                    form.qtd_criancas = data['qtd_criancas']
-                    form.gestante = data['gestante']
-                    form.qtd_amamentando = data['qtd_amamentando']
-                    form.qtd_criancas_deficiencia = data['qtd_criancas_deficiencia']
-                    form.qtd_gestantes = data['qtd_gestantes']
-
-                    db.session.add(form)
-                    db.session.commit()
-
-                    return {"status":"1000", "message":"updated"}
-            else:
-                return {"error": "O envio não foi feita no formato esperado"}
-        
-        elif request.method == 'GET':
-            form = Form_Socioeconomico.query.filter_by(pessoa=user_id).one()
-            response = {
-                    "nome_rep_familia": form.nome_rep_familia,
-                    "qtd_pessoas_familia": form.qtd_pessoas_familia,
-                    "qtd_criancas": form.qtd_criancas,
-                    "pessoa_amamenta": form.pessoa_amamenta,
-                    "qtd_criancas": form.qtd_criancas,
-                    "gestante": form.gestante,
-                    "qtd_amamentando": form.qtd_amamentando,
-                    "qtd_criancas_deficiencia": form.qtd_criancas_deficiencia,
-                    "qtd_gestantes": form.qtd_gestantes,
-            }
-
-            return {"message": "success", "form": response}
-
 
 @app.route('/users', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
