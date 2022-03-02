@@ -47,10 +47,8 @@ class Usuario(db.Model):
 
 @event.listens_for(Usuario, 'after_insert')
 def receive_after_insert(mapper, connection, target):
-    print(target.id)
     new_comp = Complemento_de_Dados(target.id)
     db.session.add(new_comp)
-    db.session.commit()
 
 class Complemento_de_Dados(db.Model):
     __tablename__ = 'complemento_de_dados'
