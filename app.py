@@ -15,8 +15,6 @@ from email.mime.text import MIMEText
 from sqlalchemy.orm import relationship
 
 
-
-
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -34,6 +32,8 @@ class Usuario(db.Model):
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)
     verificado = db.Column(db.Boolean, default=False, nullable=False)
+    sexo = db.Column(db.String(1), nullable=True)
+    nascimento = db.Column(db.String(20), nullable=True)
     data_registro = db.Column(db.DateTime, nullable=True)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
@@ -55,8 +55,6 @@ def receive_after_insert(mapper, connection, target):
 class Complemento_de_Dados(db.Model):
     __tablename__ = 'complemento_de_dados'
     id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete="cascade"), primary_key=True)
-    sexo = db.Column(db.String(1), nullable=True)
-    nascimento = db.Column(db.String(20), nullable=True)
     universidade = db.Column(db.String(80), nullable=True)
     campus = db.Column(db.String(80), nullable=True)
     setor = db.Column(db.String(80), nullable=True)
@@ -97,14 +95,6 @@ class Privilegio(db.Model):
 
     def __init__(self, user_type):
         self.user_type = user_type
-
-class Bairro(db.Model):
-    __tablename__ = 'bairros'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(80), unique=True, nullable=False)
-
-    def __init__(self, nome):
-        self.nome = nome
 
 class Postagem(db.Model):
     __tablename__ = 'postagens'
@@ -353,7 +343,7 @@ def users():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            new_user = Usuario(real_name=data['real_name'], password=data['password'], user_name=data['user_name'], user_type=data['user_type'], bairro=data['bairro'])
+            new_user = Usuario(real_name=data['real_name'], password=data['password'], user_name=data['user_name'], user_type=data['user_type'])
             if "email" in data:
                 new_user.email = data['email']
             db.session.add(new_user)
@@ -437,32 +427,6 @@ def privileges():
 
         return {"count": len(results), "Privileges": results, "message": "success"}
 
-@app.route('/bairros', methods=['POST', 'GET'])
-@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-@token_required
-def bairros():
-    if request.method == 'POST':
-        if request.is_json:
-            data = request.get_json()
-            new_bairro = Bairro(nome=data['nome'])
-
-            db.session.add(new_bairro)
-            db.session.commit()
-
-            return {"message": f"Privilégio criado com sucesso"}
-        else:
-            return {"error": "A requisição não foi feita no formato esperado"}
-
-    elif request.method == 'GET':
-        bairros = Bairro.query.all()
-        results = [
-            {
-                "nome": bairro.nome,
-                "id": bairro.id
-            } for bairro in bairros]
-
-        return {"count": len(results), "Bairros": results, "message": "success"}
-
 @app.route('/categorias', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
@@ -518,8 +482,8 @@ def handle_user(id):
         #user.real_name = data['real_name']
         #user.password = data['password']
         user.verificado = True
-        user_data.sexo = data['sexo']
-        user_data.nascimento = data['nascimento']
+        user.sexo = data['sexo']
+        user.nascimento = data['nascimento']
         user_data.universidade = data['universidade']
         user_data.campus = data['campus']
         user_data.setor = data['setor']
@@ -599,7 +563,7 @@ def postagens():
         #     Comentario).add_columns(Usuario.id, Usuario.real_name, Usuario.bairro, func.count(Comentario.id).label('comentarios')).group_by(Postagem.id, Usuario.id)
 
         # filtros gerais
-        bairro = request.args.get('bairro', None)
+        #bairro = request.args.get('bairro', None)
         categoria = request.args.get('categoria', None)
 
         if categoria is not None:
@@ -614,7 +578,7 @@ def postagens():
             user = Usuario.query.get_or_404(post.Postagem.criador)
             results.append({"id": post.Postagem.id, "titulo": post.Postagem.titulo, "texto": post.Postagem.texto,
                             "criador": user.real_name, "id_criador": user.id,
-                            "bairro": user.bairro, "selo": post.Postagem.selo,
+                            "selo": post.Postagem.selo,
                             "categoria": post.Postagem.categoria,
                             "data": post.Postagem.data.strftime("%Y-%m-%dT%H:%M:%S"),
                             "comentarios": post.comentarios})
