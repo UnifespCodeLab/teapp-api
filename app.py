@@ -19,7 +19,7 @@ from sqlalchemy.orm import relationship
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgresql://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "N5Rc6dvl8giHxExSXQmJ")
 db = SQLAlchemy(app)
@@ -29,7 +29,7 @@ class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     real_name = db.Column(db.String(80), nullable=False)
-    user_name = db.Column(db.String(80), unique=True, nullable=False) 
+    user_name = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)
     verificado = db.Column(db.Boolean, default=False, nullable=False)
@@ -312,7 +312,7 @@ def form_socio_get_by_user(user_id):
                     return {"status":"1000", "message":"updated"}
             else:
                 return {"error": "O envio não foi feita no formato esperado"}
-        
+
         elif request.method == 'GET':
             form = Form_Socioeconomico.query.filter_by(pessoa=user_id).one()
             response = {
@@ -342,7 +342,7 @@ def users():
                 new_user.email = data['email']
             db.session.add(new_user)
             db.session.commit()
-            
+
             new_user = Usuario.query.filter_by(user_name=data['user_name'],real_name=data['real_name']).first()
             new_user_not = Notificacoes_Conf(usuario=new_user.id, sistema=False, selo_postagem=False, comentario_postagem=False, saude=False, lazer=False, trocas=False)
             db.session.add(new_user_not)
@@ -726,7 +726,7 @@ def comentarios():
                 return {"message": "Comentário removido com sucesso"}
 
             return {"error": "O usuário não tem autorização para essa ação"}
-        
+
         else:
             return {"error": "A requisição não está no formato esperado"}
 
@@ -787,13 +787,13 @@ def esqueci_senha():
             row.password = hash
             db.session.add(row)
             db.session.commit()
-           
+
             msg = MIMEMultipart()
             msg['Subject'] = 'Recuperação de senha Ibeac'
             msg['From'] = 'Ibeac-Senha'
             msg['To'] = email
             body = MIMEText("A sua nova senha é "+hash)
-            msg.attach(body) 
+            msg.attach(body)
             smtpObj.sendmail('codelabtesteesquecisenha@gmail.com',email,  msg.as_string())
 
 
