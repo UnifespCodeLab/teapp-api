@@ -1,3 +1,4 @@
+from email.policy import default
 import os
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
@@ -8,18 +9,16 @@ import random
 import jwt
 import datetime
 from functools import wraps
-from sqlalchemy import func, sql
+from sqlalchemy import func, sql, event
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from sqlalchemy.orm import relationship
 
 
-
-
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgresql://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "N5Rc6dvl8giHxExSXQmJ")
 db = SQLAlchemy(app)
@@ -35,22 +34,37 @@ class Usuario(db.Model):
     verificado = db.Column(db.Boolean, default=False, nullable=False)
     sexo = db.Column(db.String(1), nullable=True)
     nascimento = db.Column(db.String(20), nullable=True)
-    cor = db.Column(db.String(10), nullable=True)
-    telefone = db.Column(db.String(20), nullable=True)
-    rua = db.Column(db.String(100), nullable=True)
-    numero_casa = db.Column(db.Integer, nullable=True)
     data_registro = db.Column(db.DateTime, nullable=True)
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     def __init__(self, real_name, password, user_name, user_type):
-        import datetime
         self.real_name = real_name
         self.password = password
-        self.verificado = False
         self.user_name = user_name
         self.user_type = user_type
         self.data_registro = datetime.datetime.now()
+
+@event.listens_for(Usuario, 'after_insert')
+def receive_after_insert(mapper, connection, target):
+    new_comp = Complemento_de_Dados(target.id)
+    db.session.add(new_comp)
+
+class Complemento_de_Dados(db.Model):
+    __tablename__ = 'complemento_de_dados'
+    id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete="cascade"), primary_key=True)
+    universidade = db.Column(db.String(80), nullable=True)
+    campus = db.Column(db.String(80), nullable=True)
+    setor = db.Column(db.String(80), nullable=True)
+    deficiencia = db.Column(db.String(80), nullable=True)
+    parente_com_tea = db.Column(db.String(80), nullable=True)
+    freq_convivio_tea = db.Column(db.String(80), nullable=True)
+    qtd_alunos_tea = db.Column(db.Integer, nullable=True)
+    tempo_trabalho_tea = db.Column(db.Integer, nullable=True)
+    qtd_pacientes_tea_ano = db.Column(db.Integer, nullable=True)
+
+    def __init__(self, id):
+        self.id = id
 
 class Notificacoes_Conf(db.Model):
     __tablename__ = 'notificacoes_conf'
@@ -118,31 +132,6 @@ class Comentario(db.Model):
         self.criador = criador
         self.postagem = postagem
         self.resposta = resposta
-
-class Form_Socioeconomico(db.Model):
-    __tablename__ = 'form_socioeconomico'
-    id = db.Column(db.Integer, primary_key=True)
-    nome_rep_familia = db.Column(db.String(100), nullable=False)
-    pessoa = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    qtd_pessoas_familia = db.Column(db.Integer, nullable=False)
-    qtd_criancas = db.Column(db.Integer, nullable=False)
-    gestante = db.Column(db.Boolean, nullable=False)
-    qtd_amamentando = db.Column(db.Integer, nullable=False)
-    qtd_criancas_deficiencia = db.Column(db.Integer, nullable=False)
-    preenchido = db.Column(db.Boolean, nullable=False, default="False")
-    pessoa_amamenta = db.Column(db.Boolean, nullable=False, default="False")
-    qtd_gestantes = db.Column(db.Integer, nullable=False)
-    def __init__(self, nome_rep_familia, pessoa, qtd_pessoas_familia, qtd_criancas, gestante, qtd_amamentando, qtd_criancas_deficiencia, qtd_gestantes, pessoa_amamenta):
-        self.nome_rep_familia = nome_rep_familia
-        self.pessoa = pessoa
-        self.qtd_pessoas_familia = qtd_pessoas_familia
-        self.qtd_criancas = qtd_criancas
-        self.gestante = gestante
-        self.qtd_amamentando = qtd_amamentando
-        self.qtd_criancas_deficiencia = qtd_criancas_deficiencia
-        self.qtd_gestantes = qtd_gestantes
-        self.pessoa_amamenta = pessoa_amamenta
-        self.preenchido = True
 
 def get_authorized_user(request):
     token = request.headers['Authorization'].split("Bearer ")[1]
@@ -233,91 +222,6 @@ def handle_user_notificacao(id):
         db.session.add(user_not)
         db.session.commit()
         return {"message": f"Configurações de notificação atualizadas"}
-
-
-
-@app.route('/form_socio/<id>', methods=['POST', 'GET'])
-@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-@token_required
-def form_socio(id):
-    if request.method == 'POST':
-        if request.is_json:
-            data = request.get_json()
-            new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=data['pessoa'], qtd_pessoas_familia=data['qtd_pessoas_familia'],
-            pessoa_amamenta=data['pessoa_amamenta'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], qtd_gestantes=data['qtd_gestantes'])
-            db.session.add(new_form)
-            db.session.commit()
-
-            return {"message": f"Formulário enviado!"}
-        else:
-            return {"error": "O envio não foi feita no formato esperado"}
-
-    elif request.method == 'GET':
-        forms = Form_Socioeconomico.query.filter_by(pessoa=id).all()
-        results = []
-        for form in forms:
-            if form.preenchido:
-                results.append({
-                    "preenchido": form.preenchido,
-                    "nome_rep": form.nome_rep_familia,
-                    "qtd_pessoas": form.qtd_pessoas_familia,
-                    "qtd_criancas": form.qtd_criancas,
-                    "gestante": form.gestante,
-                    "qtd_amamentando": form.qtd_amamentando,
-                    "qtd_criancas_deficiencia": form.qtd_criancas_deficiencia,
-                    "pessoa_amamenta": form.pessoa_amamenta,
-                    "qtd_gestantes": form.qtd_gestantes
-                })
-
-        return {"count": len(results), "users": results}
-
-@app.route('/form_socio_by_user_id/<user_id>', methods=['POST', 'GET'])
-@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-@token_required
-def form_socio_get_by_user(user_id):
-        if request.method == 'POST':
-            if request.is_json:
-                data = request.get_json()
-                form = Form_Socioeconomico.query.filter_by(pessoa=user_id).first()
-                if form is None:
-                    new_form = Form_Socioeconomico(nome_rep_familia=data['nome_rep_familia'], pessoa=user_id, qtd_pessoas_familia=data['qtd_pessoas_familia'],
-                    pessoa_amamenta=data['pessoa_amamenta'], qtd_criancas=data['qtd_criancas'], gestante=data['gestante'], qtd_amamentando=data['qtd_amamentando'], qtd_criancas_deficiencia=data['qtd_criancas_deficiencia'], qtd_gestantes=data['qtd_gestantes'])
-                    db.session.add(new_form)
-                    db.session.commit()
-                    return {"status":"1000", "message":"created"}
-
-                else:
-                    form.nome_rep_familia = data['nome_rep_familia']
-                    form.qtd_pessoas_familia = data['qtd_pessoas_familia']
-                    form.pessoa_amamenta = data['pessoa_amamenta']
-                    form.qtd_criancas = data['qtd_criancas']
-                    form.gestante = data['gestante']
-                    form.qtd_amamentando = data['qtd_amamentando']
-                    form.qtd_criancas_deficiencia = data['qtd_criancas_deficiencia']
-                    form.qtd_gestantes = data['qtd_gestantes']
-
-                    db.session.add(form)
-                    db.session.commit()
-
-                    return {"status":"1000", "message":"updated"}
-            else:
-                return {"error": "O envio não foi feita no formato esperado"}
-
-        elif request.method == 'GET':
-            form = Form_Socioeconomico.query.filter_by(pessoa=user_id).one()
-            response = {
-                    "nome_rep_familia": form.nome_rep_familia,
-                    "qtd_pessoas_familia": form.qtd_pessoas_familia,
-                    "qtd_criancas": form.qtd_criancas,
-                    "pessoa_amamenta": form.pessoa_amamenta,
-                    "qtd_criancas": form.qtd_criancas,
-                    "gestante": form.gestante,
-                    "qtd_amamentando": form.qtd_amamentando,
-                    "qtd_criancas_deficiencia": form.qtd_criancas_deficiencia,
-                    "qtd_gestantes": form.qtd_gestantes,
-            }
-
-            return {"message": "success", "form": response}
 
 
 @app.route('/users', methods=['POST', 'GET'])
@@ -461,17 +365,24 @@ def handle_user(id):
 
     elif request.method == 'PUT':
         data = request.get_json()
+        user_data = Complemento_de_Dados.query.get_or_404(id)
         #user.email = data['email']
         #user.real_name = data['real_name']
         #user.password = data['password']
         user.verificado = True
         user.sexo = data['sexo']
         user.nascimento = data['nascimento']
-        user.cor = data['cor']
-        user.telefone = data['telefone']
-        user.rua = data['rua']
-        user.numero_casa = data['numero_casa']
+        user_data.universidade = data['universidade']
+        user_data.campus = data['campus']
+        user_data.setor = data['setor']
+        user_data.deficiencia = data['deficiencia']
+        user_data.parente_com_tea = data['parente_com_tea']
+        user_data.freq_convivio_tea = data['freq_convivio_tea']
+        user_data.qtd_alunos_tea = data['qtd_alunos_tea']
+        user_data.tempo_trabalho_tea = data['tempo_trabalho_tea']
+        user_data.qtd_pacientes_tea_ano = data['qtd_pacientes_tea_ano']
 
+        db.session.add(user_data)
         db.session.add(user)
         db.session.commit()
 
