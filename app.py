@@ -223,7 +223,7 @@ def handle_user_notificacao(id):
         db.session.commit()
         return {"message": f"Configurações de notificação atualizadas"}
 
-      
+
 @app.route('/users', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 @token_required
@@ -451,7 +451,6 @@ def postagens():
         #     Comentario).add_columns(Usuario.id, Usuario.real_name, Usuario.bairro, func.count(Comentario.id).label('comentarios')).group_by(Postagem.id, Usuario.id)
 
         # filtros gerais
-        #bairro = request.args.get('bairro', None)
         categoria = request.args.get('categoria', None)
 
         if categoria is not None:
