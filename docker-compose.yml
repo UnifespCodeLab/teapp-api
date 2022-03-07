@@ -3,7 +3,7 @@ version: "3.7"
 services:
   flask-api:
     image: thisk8brd/flask-api
-    container_name: ibeac-api
+    container_name: teapp-api
     build:
       context: .
       target: debug
