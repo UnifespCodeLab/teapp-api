@@ -12,7 +12,7 @@ PORTAL_NAME = "TEApp"
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgresql://sggchwrdaaposg:81d05be684e25e547e89ceb4b30c229926163f02a1091c6d668424296f85f4cd@ec2-54-157-15-228.compute-1.amazonaws.com:5432/dd01iafe525312")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "N5Rc6dvl8giHxExSXQmJ")
 app.config['RESTX_MASK_SWAGGER'] = False
