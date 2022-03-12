@@ -1,0 +1,1 @@
+PORTAL_HAS_BAIRRO = False

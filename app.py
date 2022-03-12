@@ -13,13 +13,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from sqlalchemy.orm import relationship
 
-
-
+from config import PORTAL_HAS_BAIRRO
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgresql://jkpaprazxcpojo:2a135108dda110cdf26d9ef31fff1c6b9f94cd92993f25a90c3df353c685626d@ec2-52-45-179-101.compute-1.amazonaws.com:5432/d5bi00ifg35edj")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', "postgresql://sggchwrdaaposg:81d05be684e25e547e89ceb4b30c229926163f02a1091c6d668424296f85f4cd@ec2-54-157-15-228.compute-1.amazonaws.com:5432/dd01iafe525312")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "N5Rc6dvl8giHxExSXQmJ")
 db = SQLAlchemy(app)
@@ -40,7 +39,7 @@ class Usuario(db.Model):
     rua = db.Column(db.String(100), nullable=True)
     numero_casa = db.Column(db.Integer, nullable=True)
     data_registro = db.Column(db.DateTime, nullable=True)
-    bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)
+    # bairro = db.Column(db.Integer, db.ForeignKey('bairros.id'), nullable=False)  # PORTAL_HAS_BAIRRO
     user_type = db.Column(db.Integer, db.ForeignKey('privilegios.id'), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
@@ -52,7 +51,7 @@ class Usuario(db.Model):
         self.user_name = user_name
         self.user_type = user_type
         self.data_registro = datetime.datetime.now()
-        self.bairro = bairro
+        # self.bairro = bairro  # PORTAL_HAS_BAIRRO
 
 class Notificacoes_Conf(db.Model):
     __tablename__ = 'notificacoes_conf'
@@ -73,14 +72,6 @@ class Notificacoes_Conf(db.Model):
         self.saude = saude
         self.lazer = lazer
         self.trocas = trocas
-
-class Privilegio(db.Model):
-    __tablename__ = 'privilegios'
-    id = db.Column(db.Integer, primary_key=True)
-    user_type = db.Column(db.String(80), unique=True, nullable=False)
-
-    def __init__(self, user_type):
-        self.user_type = user_type
 
 class Bairro(db.Model):
     __tablename__ = 'bairros'
