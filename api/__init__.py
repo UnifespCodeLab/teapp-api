@@ -5,9 +5,9 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_restx import Api
 
-VERSION = "2.0"
 AUTH_VERSION = str(os.environ.get("AUTH_VERSION", "0.2.2"))
-PORTAL_NAME = "TEApp"
+VERSION =  str(os.environ.get("VERSION", "2.1"))
+PORTAL_NAME = str(os.environ.get("PORTAL_NAME", "TEApp"))
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
