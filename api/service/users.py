@@ -85,7 +85,7 @@ def UpdateById(id, data, updater):
     if not is_updated_mod and is_updated_admin and updater.id != id:
         raise ForbiddenError("O usuário não tem autorização para essa ação")
 
-    schema = ["name", "data"]
+    schema = ["name", "has_accepted_terms", "data"]
 
     # somente um administrador pode alterar as credenciais de usuario
     #   ou o proprio usuario

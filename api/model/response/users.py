@@ -7,16 +7,27 @@ user = api.model("User", {
     "active": fields.Boolean,
     "email": fields.String,
     "username": fields.String,
-    "name": fields.String
+    "name": fields.String,
+    "has_data": fields.Boolean,
+    "has_accepted_terms": fields.Boolean
 })
 
-user_data = api.model("User Data", {
-    # "sexo": fields.String(max_length=1),
-    # "nascimento": fields.String(),
-    # "cor": fields.String(),
-    # "telefone": fields.String(),
-    # "rua": fields.String(),
-    # "numero_casa": fields.Integer()
+user_data = api.schema_model("User Data", {
+    'required': ['address'],
+    'properties': {
+      'genero': {type: 'string'},
+      # 'nascimento': {type: 'date'},
+      # 'instituicao': {type: 'string'},
+      # 'campus': {type: 'string'},
+      # 'setor': {type: 'string'},
+      # 'deficiencia': {type: 'boolean'},
+      # 'parente_com_tea': {type: 'boolean'},
+      # 'freq_convivio_tea': {type: 'string'},
+      # 'qtd_alunos_tea': {type: 'integer'},
+      # 'tempo_trabalho_tea': {type: 'integer'},
+      # 'qtd_pacientes_tea_ano': {type: 'integer'},
+    },
+    'type': 'object'
 })
 
 user_complete = api.inherit("User Complete", user, {

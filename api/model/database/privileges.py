@@ -26,6 +26,6 @@ class Privilegio(db.Model):
         }
 
         if metadata or created is not None or updated is not None:
-            SerializeMetadata(self, into=obj, created=created, updated=updated)
+            obj = SerializeMetadata(self, into=obj, created=created, updated=updated)
 
         return obj

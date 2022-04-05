@@ -6,7 +6,7 @@ from flask_cors import CORS
 from flask_restx import Api
 
 AUTH_VERSION = str(os.environ.get("AUTH_VERSION", "0.2.2"))
-VERSION =  str(os.environ.get("VERSION", "2.1"))
+VERSION = str(os.environ.get("VERSION", "2.1"))
 PORTAL_NAME = str(os.environ.get("PORTAL_NAME", "TEApp"))
 
 app = Flask(__name__)

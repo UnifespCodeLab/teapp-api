@@ -15,6 +15,7 @@ class Usuario(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
     name = db.Column(db.String(180), nullable=False)
+    has_accepted_terms = db.Column(db.Boolean, default=False)
 
     # dados necessarios pro fork local? não vejo mt a necessidade de criar uma tabela pra isso se as vantagens do
     #      banco relacional não vão ser relevantes
@@ -47,7 +48,9 @@ class Usuario(db.Model):
             "active": self.active,
             "email": self.email,
             "username": self.username,
-            "name": self.name
+            "name": self.name,
+            "has_data": self.data is not None,
+            "has_accepted_terms": self.has_accepted_terms
         }
 
         if data:
@@ -57,6 +60,6 @@ class Usuario(db.Model):
             }
 
         if metadata or created is not None or updated is not None:
-            SerializeMetadata(self, into=obj, created=created, updated=updated)
+            obj = SerializeMetadata(self, into=obj, created=created, updated=updated)
 
         return obj

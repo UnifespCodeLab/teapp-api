@@ -44,6 +44,7 @@ CREATE TABLE usuarios (
     username CHARACTER VARYING(80),
     password CHARACTER VARYING(80) NOT NULL,
     name CHARACTER VARYING(180) NOT NULL,
+    has_accepted_terms BOOLEAN NOT NULL DEFAULT FALSE,
     -- dados necessarios pro fork local? não vejo mt a necessidade de criar uma tabela pra isso se as vantagens do
     --      banco relacional não vão ser relevantes
     --      um problema seria a falta de um "schema" pra isso, e talvez a necessidade de salvar um schema também?

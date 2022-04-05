@@ -73,3 +73,4 @@ def required(response, request=None, token=False):
         return decorator
         
     return required_decorator
+

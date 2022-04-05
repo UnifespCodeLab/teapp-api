@@ -4,7 +4,7 @@ from flask_restx import Resource
 
 from api import api, AUTH_VERSION
 
-from api.util.decorators import required
+from api.util.decorators import required, token_required
 from api.util.auth import get_authorized_user
 from api.util.errors import EntryNotFoundError, MessagedError, NotFoundError
 from api.util.request import get_boolean_arg
@@ -87,7 +87,8 @@ class Recover(Resource):
 @auth.route('/me')
 class Me(Resource):
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    @required(response=response.me, token=True)
+    # @required(response=response.me, token=True)
+    @token_required
     def get(self):
         # arg data: if response should include data field
         return ById(get_authorized_user().id, get_boolean_arg("data"))

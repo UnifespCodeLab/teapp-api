@@ -10,8 +10,8 @@ INSERT INTO privilegios (name, created_user, updated_user) VALUES
 
 -- usuário admin, agnostico ao fork
 --      query nao ta errada, se algum intellisense apontar erro é pq a IDE não entende o "OVERRIDING SYSTEM VALUE"
-INSERT INTO usuarios (id, type, email, username, password, name, created_user, updated_user)
-OVERRIDING SYSTEM VALUE VALUES (0, 1, 'admin@email.com', 'admin', '12345', 'Administrador', 0, 0);
+INSERT INTO usuarios (id, type, email, username, password, name, has_accepted_terms, created_user, updated_user)
+OVERRIDING SYSTEM VALUE VALUES (0, 1, 'admin@email.com', 'admin', '12345', 'Administrador', False, 0, 0);
 
 INSERT INTO categorias (id, name, created_user, updated_user)
 OVERRIDING SYSTEM VALUE VALUES (0, 'Sem Categoria', 0, 0);
@@ -43,3 +43,5 @@ SELECT * FROM privilegios;
 SELECT * FROM categorias;
 SELECT * FROM postagens ORDER BY created_date DESC;
 SELECT * FROM comentarios;
+
+UPDATE usuarios SET data = NULL WHERE id = 0
