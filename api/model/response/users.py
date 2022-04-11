@@ -13,19 +13,20 @@ user = api.model("User", {
 })
 
 user_data = api.schema_model("User Data", {
-    'required': ['address'],
+    # 'required': ['address'],
     'properties': {
-      'genero': {type: 'string'},
-      # 'nascimento': {type: 'date'},
-      # 'instituicao': {type: 'string'},
-      # 'campus': {type: 'string'},
-      # 'setor': {type: 'string'},
-      # 'deficiencia': {type: 'boolean'},
-      # 'parente_com_tea': {type: 'boolean'},
-      # 'freq_convivio_tea': {type: 'string'},
-      # 'qtd_alunos_tea': {type: 'integer'},
-      # 'tempo_trabalho_tea': {type: 'integer'},
-      # 'qtd_pacientes_tea_ano': {type: 'integer'},
+      'genero': {'type': 'string'},
+      'nascimento': {'type': 'date'},
+      'area_atuacao': {'type': 'string'},
+      'instituicao': {'type': 'string'},
+      'campus': {'type': 'string'},
+      'setor': {'type': 'string'},
+      'deficiencia': {'type': 'boolean'},
+      'parente_com_tea': {'type': 'boolean'},
+      'freq_convivio_tea': {'type': 'string'},
+      'qtd_alunos_tea': {'type': 'integer'},
+      'tempo_trabalho_tea': {'type': 'integer'},
+      'qtd_pacientes_tea_ano': {'type': 'integer'},
     },
     'type': 'object'
 })
