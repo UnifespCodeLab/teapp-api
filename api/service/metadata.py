@@ -26,7 +26,7 @@ def SerializeUpdatedMetadata(entry, user=None):
         name = user.name
 
     return {
-        "created": {
+        "updated": {
             "user": entry.updated_user,
             "name": name,
             "date": entry.updated_date.strftime("%Y-%m-%dT%H:%M:%S")
