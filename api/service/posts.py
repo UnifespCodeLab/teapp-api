@@ -77,10 +77,10 @@ def UpdateStamp(id, status, updater):
 
 
 def Remove(id, remover):
-    postagem = Comentario.query.get_or_404(id)
+    postagem = Postagem.query.get_or_404(id)
 
     if remover.id == postagem.created_user or VerifyAccess(remover, [ADMINISTRADOR, MODERADOR]):
-        comments = Comentario.query.filter_by(postagem=id).order_by(Comentario.data.desc()).all()
+        comments = Comentario.query.filter_by(postagem=id).order_by(Comentario.created_date.desc()).all()
         for comment in comments:
             db.session.delete(comment)
 
