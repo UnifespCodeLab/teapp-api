@@ -32,6 +32,18 @@ class Comments(Resource):
 
         return {"count": len(results), "comments": results, "success": True}
 
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    @required(response=default.message, token=True)
+    def delete(self, id):
+        try:
+            Remove(id, get_authorized_user())
+
+            return {"message": f"Comentário {id} removido com sucesso"}
+        except MessagedError as e:
+            # erro geral, que possui alguma mensagem especifica
+            # nesse caso, informar a mensagem ed erro pro usuario E um status code 500 INTERNAL SERVER ERROR
+            return {"message": e.message}
+
 
 @comments.route("/post/<int:id>")
 class CommentsPost(Resource):
