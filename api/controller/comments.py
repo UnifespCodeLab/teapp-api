@@ -16,7 +16,7 @@ from api.util.errors import MessagedError
 comments = api.namespace('comments', description="Comments namespace")
 
 
-@comments.route("/")
+@comments.route("")
 class Comments(Resource):
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     @required(response=default.message, request=request.comment, token=True)
