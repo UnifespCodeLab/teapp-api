@@ -78,27 +78,34 @@ def Create(data, creator):
 
 
 def UpdateById(id, data, updater):
-    is_updated_admin = VerifyAccess(updater, [ADMINISTRADOR])
-    is_updated_mod = VerifyAccess(updater, [MODERADOR])
+    is_updater_admin = VerifyAccess(updater, [ADMINISTRADOR])
+    is_updater_mod = VerifyAccess(updater, [MODERADOR])
     user = Usuario.query.get_or_404(id)
 
-    if not is_updated_mod and is_updated_admin and updater.id != id:
+    is_updater_user = updater.id == id
+    has_current_password = "current_password" in data and data["current_password"] == user.password
+
+    if not is_updater_admin and not is_updater_mod and not is_updater_user:
         raise ForbiddenError("O usuário não tem autorização para essa ação")
 
     schema = ["name", "has_accepted_terms", "data"]
 
     # somente um administrador pode alterar as credenciais de usuario
     #   ou o proprio usuario
-    if is_updated_admin or updater.id == id:
+    if is_updater_admin or (is_updater_user and has_current_password):
         # arrumar um jeito melhor pra definir esse tipo de permissao
 
         schema += ["email", "username"]
+
+        # atualizar senha
         if "password" in data and "confirmation_password" in data and data["password"] == data["confirmation_password"]:
             schema += ["password"]
 
         # somente um administrador pode mudar o tipo de usuário/desativar
-        if is_updated_admin:
+        if is_updater_admin:
             schema += ["type", "active"]
+    elif not is_updater_admin and is_updater_user and not has_current_password:
+        raise ForbiddenError("O usuário não tem autorização para essa ação")
 
     user_update = get_update_dict(schema, data)
     if user_update is None:

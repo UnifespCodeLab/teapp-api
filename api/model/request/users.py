@@ -20,13 +20,14 @@ user_create = api.model("User Create", {
 })
 
 user_update = api.model("User Update", {
-    "type": fields.Integer,
-    "active": fields.Boolean,
+    "type": fields.Integer("type", required=False),
+    "active": fields.Boolean("active", required=False),
     "email": fields.String,
     "username": fields.String,
     "name": fields.String,
-    "password": fields.String("password"),
-    "confirmation_password": fields.String("password"),
+    "current_password": fields.String("current_password", required=False),
+    "password": fields.String("password", required=False),
+    "confirmation_password": fields.String("confirmation_password", required=False),
     "data": fields.Nested(user_data, skip_none=True)
 })
 
