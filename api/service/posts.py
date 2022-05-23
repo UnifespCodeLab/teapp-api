@@ -68,12 +68,14 @@ def Create(data, creator):
 
 def UpdateStamp(id, status, updater):
     postagem = Postagem.query.get_or_404(id)
-    postagem.selo = status
+    postagem.selo = (not postagem.selo) if status is None else status
 
     UpdateMetadata(postagem, updater.id)
 
     db.session.add(postagem)
     db.session.commit()
+
+    return postagem.selo
 
 
 def Remove(id, remover):

@@ -59,11 +59,15 @@ class PostsId(Resource):
 @posts.route("/<int:id>/stamp")
 class Stamp(Resource):
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    @required(response=default.message, token=True)
+    @required(response=response.stamp, token=True)
     def put(self, id):
-        UpdateStamp(id, True, get_authorized_user())
+        status = get_boolean_arg('status', None)
+        new_status = UpdateStamp(id, status, get_authorized_user())
 
-        return {"message": f"Selo emitido!"}
+        return {
+            "message": f"Selo emitido!" if status is True else "Selo atualizado!",
+            "status": new_status
+        }
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     @required(response=default.message, token=True)

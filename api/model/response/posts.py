@@ -3,6 +3,11 @@ from flask_restx import fields
 
 from api.model.metadata import created
 
+stamp = api.model("Stamp", {
+    "message": fields.String(),
+    "status": fields.Boolean()
+})
+
 post = api.model("Post", {
     "titulo": fields.String(),
     "texto": fields.String(),
