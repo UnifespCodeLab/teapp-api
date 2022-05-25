@@ -104,8 +104,6 @@ def UpdateById(id, data, updater):
         # somente um administrador pode mudar o tipo de usuário/desativar
         if is_updater_admin:
             schema += ["type", "active"]
-    elif not is_updater_admin and is_updater_user and not has_current_password:
-        raise ForbiddenError("O usuário não tem autorização para essa ação")
 
     user_update = get_update_dict(schema, data)
     if user_update is None:

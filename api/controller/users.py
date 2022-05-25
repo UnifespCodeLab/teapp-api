@@ -48,16 +48,16 @@ class UserId(Resource):
         return {"success": True, "user": user}
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    @required(response=default.message, request=request.user_update, token=True)
+    @required(response=default.success_message, request=request.user_update, token=True)
     def put(self, data, id):
         try:
             user = UpdateById(id, data, get_authorized_user())
 
-            return {"message": f"Dados de {user['username']} atualizados"}
+            return {"success": True, "message": f"Dados de {user['username']} atualizados"}
         except MessagedError as e:
             # erro geral, que possui alguma mensagem especifica
             # nesse caso, informar a mensagem ed erro pro usuario E um status code 500 INTERNAL SERVER ERROR
-            return {"message": e.message}
+            return {"success": False, "message": e.message}
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     @required(response=default.message, token=True)
